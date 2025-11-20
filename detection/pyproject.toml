@@ -1,0 +1,8 @@
+[project]
+name = "detection"
+version = "0.1.0"
+description = "Autonomous vehicle detection system"
+requires-python = ">=3.13"
+dependencies = [
+    "ultralytics>=8.3.229",
+]
