@@ -83,6 +83,7 @@ fpsMA = 0.0 # Moving Average zeby wygladzic
 fpsMABuffer = []
 fpsMAThreshold = 200
 imageCount = 0
+times = []
 while True:
     startTime = time.perf_counter()
 
@@ -106,9 +107,12 @@ while True:
     if RESOLUTION:
         frame = cv2.resize(frame, (resWidth, resHeight))
 
+    inferenceStartTime = time.perf_counter()
+
     results = detector.detect(frame)
 
     endTime = time.perf_counter()
+    times.append(endTime - inferenceStartTime)
     fpsCurrent = 1 / (endTime - startTime)
     if len(fpsMABuffer) >= fpsMAThreshold:
         fpsMABuffer.pop(0)
@@ -134,6 +138,11 @@ while True:
         timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
         filename = os.path.join('saved_frames', f'frame_{timestamp}.png')
         cv2.imwrite(filename, frame)
+
+if sourceType == 'video' or 'folder':
+    vizualizer.plotBenchmark(times, SOURCE) # dodac argument device=RPI4 podczas benchmarku dla niego
+elif sourceType == 'camera':
+    vizualizer.plotBenchmark(times, sourceType) # dodac argument device=RPI4 podczas benchmarku dla niego
 
 if sourceType == 'video' or sourceType == 'camera':
     cap.release()
