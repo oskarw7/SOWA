@@ -2,6 +2,7 @@ import argparse
 import glob
 import os
 import sys
+from datetime import datetime
 
 import cv2
 
@@ -12,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model', help='Path to YOLO model file (example: "runs/detect/train/weights/best.pt")',
                     required=True)
 parser.add_argument('--source', help='Image source, can be image file ("test.jpg"), \
-                    image folder ("test_dir"), video file ("testvid.mp4")',
+                    image folder ("test_dir"), video file ("testvid.mp4") or camera ("camera")',
                     required=True)
 parser.add_argument('--thresh', help='Minimum confidence threshold for displaying detected objects (example: "0.4")',
                     default=0.5)
@@ -40,14 +41,17 @@ elif os.path.isfile(SOURCE):
     else:
         print(f'File extension {ext} is not supported.')
         sys.exit(0)
+elif SOURCE == 'camera':
+    SOURCE = 'rtsp://admin:admin1234@192.168.5.190:554/main'
+    # INFO: do sprawdzenia, bylo w pierwotnym kodzie z RPI4; URL podawany w kodzie dla wygody
+    # os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS']='rtsp_transport;tcp'
+    sourceType = 'camera'
 else:
     print(f'Input {SOURCE} is invalid. Please try again.')
     sys.exit(0)
 
-resize = False
 if RESOLUTION:
-    resize = True
-    resW, resH = int(RESOLUTION.split('x')[0]), int(RESOLUTION.split('x')[1])
+    resWidth, resHeight = int(RESOLUTION.split('x')[0]), int(RESOLUTION.split('x')[1])
 
 if sourceType == 'image':
     imageList = [SOURCE]
@@ -58,11 +62,17 @@ elif sourceType == 'folder':
         _, fileExt = os.path.splitext(file)
         if fileExt in IMAGE_EXTENSIONS:
             imageList.append(file)
-elif sourceType == 'video':
-    cap = cv2.VideoCapture(SOURCE)
+elif sourceType == 'video' or sourceType == 'camera':
+    if sourceType == 'video':
+        cap = cv2.VideoCapture(SOURCE)
+    else:
+        cap = cv2.VideoCapture(SOURCE, cv2.CAP_FFMPEG)
+        if not cap.isOpened():
+            print(f'RTSP stream {SOURCE} could not be opened.')
+            sys.exit(0)
     if RESOLUTION:
-        _ = cap.set(3, resW)
-        _ = cap.set(4, resH)
+        _ = cap.set(cv2.CAP_PROP_FRAME_WIDTH, resWidth)
+        _ = cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resHeight)
 
 detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD)
 vizualiser = Vizualiser(sourceType)
@@ -76,29 +86,35 @@ while True:
         frame = cv2.imread(imgFilename)
         imageCount += 1
 
-    elif sourceType == 'video':
+    elif sourceType == 'video' or sourceType == 'camera':
         ret, frame = cap.read()
         if not ret:
-            print('Reached end of the video file. Exiting program.')
+            if sourceType == 'video':
+                print('Reached end of the video file. Exiting program.')
+            else:
+                print('Error occurred while capturing frame')
             break
 
-    if resize:
-        frame = cv2.resize(frame,(resW,resH))
+    if RESOLUTION:
+        frame = cv2.resize(frame, (resWidth, resHeight))
 
     results = detector.detect(frame)
     vizualiser.draw(frame, results)
 
     if sourceType == 'image' or sourceType == 'folder':
         key = cv2.waitKey()
-    elif sourceType == 'video':
+    elif sourceType == 'video' or sourceType == 'camera':
         key = cv2.waitKey(5)
     if key == ord('q') or key == ord('Q') or key == 27:
         break
-    elif key == ord('p') or key == ord('P'):
+    elif key == ord('p') or key == ord('P'): # pause
         cv2.waitKey()
-    elif key == ord('s') or key == ord('S'):
-        cv2.imwrite('saved_frame.png', frame)
+    elif key == ord('s') or key == ord('S'): # save
+        os.makedirs('saved_frames', exist_ok=True)
+        timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
+        filename = os.path.join('saved_frames', f'frame_{timestamp}.png')
+        cv2.imwrite(filename, frame)
 
-if sourceType == 'video':
+if sourceType == 'video' or sourceType == 'camera':
     cap.release()
 cv2.destroyAllWindows()
