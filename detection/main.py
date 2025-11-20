@@ -2,12 +2,14 @@ import argparse
 import glob
 import os
 import sys
+import time
 from datetime import datetime
 
 import cv2
+import numpy as np
 
 from detector import Detector
-from vizualiser import Vizualiser
+from vizualizer import Vizualizer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', help='Path to YOLO model file (example: "runs/detect/train/weights/best.pt")',
@@ -75,9 +77,15 @@ elif sourceType == 'video' or sourceType == 'camera':
         _ = cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resHeight)
 
 detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD)
-vizualiser = Vizualiser(sourceType)
+vizualizer = Vizualizer()
+
+fpsMA = 0.0 # Moving Average zeby wygladzic
+fpsMABuffer = []
+fpsMAThreshold = 200
 imageCount = 0
 while True:
+    startTime = time.perf_counter()
+
     if sourceType == 'image' or sourceType == 'folder':
         if imageCount >= len(imageList):
             print('All images have been processed. Exiting program.')
@@ -99,7 +107,19 @@ while True:
         frame = cv2.resize(frame, (resWidth, resHeight))
 
     results = detector.detect(frame)
-    vizualiser.draw(frame, results)
+
+    endTime = time.perf_counter()
+    fpsCurrent = 1 / (endTime - startTime)
+    if len(fpsMABuffer) >= fpsMAThreshold:
+        fpsMABuffer.pop(0)
+    fpsMABuffer.append(fpsCurrent)
+    fpsMA = float(np.mean(fpsMABuffer))
+    print(f'Frame capture and inference time: {endTime - startTime} ms')
+
+    vizualizer.draw(frame, results)
+    if sourceType == 'video' or sourceType == 'camera':
+        vizualizer.showFps(frame, fpsMA)
+    cv2.imshow('Detection results', frame)
 
     if sourceType == 'image' or sourceType == 'folder':
         key = cv2.waitKey()
