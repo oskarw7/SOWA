@@ -28,6 +28,7 @@ class Vizualizer:
         cv2.putText(frame, f'FPS: {fps:0.2f}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (51, 255, 51), 2)
 
     def plotBenchmark(self, times: list[float], source: str, device: str = 'GPU') -> None:
+        times = [t*1000 for t in times]
         plt.plot(times[1:]) # pominiecie pierwszego pomiaru ze wzgledu na za duzy odchyl (0.7 vs 10^{-2})
         plt.xlabel('Frame index')
         plt.ylabel('Time [ms]')

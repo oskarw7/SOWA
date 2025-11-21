@@ -129,7 +129,7 @@ while True:
         fpsMABuffer.pop(0)
     fpsMABuffer.append(fpsCurrent)
     fpsMA = float(np.mean(fpsMABuffer))
-    print(f'Frame capture and inference time: {endTime - startTime} ms')
+    print(f'Frame capture and inference time: {(endTime - startTime)*1000} ms')
 
     vizualizer.draw(frame, results)
     if sourceType == 'video' or sourceType == 'camera':
