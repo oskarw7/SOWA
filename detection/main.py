@@ -22,12 +22,14 @@ parser.add_argument('--thresh', help='Minimum confidence threshold for displayin
 parser.add_argument('--resolution', help='Resolution in WxH to display inference results at (example: "640x480"), \
                     otherwise, match source resolution',
                     default=None)
+parser.add_argument('--record', help='Add this flag to save detection results as MP4 file. Works only for video and camera sources.', action='store_true')
 args = parser.parse_args()
 
 MODEL_PATH = args.model
 SOURCE = args.source
 CONFIDENCE_THRESHOLD = args.thresh
 RESOLUTION = args.resolution
+RECORD_FLAG = args.record
 
 IMAGE_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.bmp', '.BMP']
 VIDEO_EXTENSIONS = ['.avi', '.mov', '.mp4', '.mkv', '.wmv']
@@ -71,10 +73,19 @@ elif sourceType == 'video' or sourceType == 'camera':
         cap = cv2.VideoCapture(SOURCE, cv2.CAP_FFMPEG)
         if not cap.isOpened():
             print(f'RTSP stream {SOURCE} could not be opened.')
-            sys.exit(0)
+            sys.exit(1)
     if RESOLUTION:
         _ = cap.set(cv2.CAP_PROP_FRAME_WIDTH, resWidth)
         _ = cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resHeight)
+
+    if RECORD_FLAG:
+        if not RESOLUTION:
+            print('Resolution not provided. Recording is not possible.')
+            sys.exit(1)
+        os.makedirs('saved_videos', exist_ok=True)
+        timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
+        videoName = os.path.join('saved_videos', f'video_{timestamp}.mp4')
+        videoRecorder = cv2.VideoWriter(videoName, cv2.VideoWriter_fourcc(*'mp4v'), 30, (resWidth, resHeight))
 
 detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD)
 vizualizer = Vizualizer()
@@ -125,10 +136,13 @@ while True:
         vizualizer.showFps(frame, fpsMA)
     cv2.imshow('Detection results', frame)
 
+    if RECORD_FLAG and (sourceType == 'video' or sourceType == 'camera'):
+        videoRecorder.write(frame)
+
     if sourceType == 'image' or sourceType == 'folder':
         key = cv2.waitKey()
     elif sourceType == 'video' or sourceType == 'camera':
-        key = cv2.waitKey(5)
+        key = cv2.waitKey(1)
     if key == ord('q') or key == ord('Q') or key == 27:
         break
     elif key == ord('p') or key == ord('P'): # pause
@@ -146,4 +160,6 @@ elif sourceType == 'camera':
 
 if sourceType == 'video' or sourceType == 'camera':
     cap.release()
+    if RECORD_FLAG:
+        videoRecorder.release()
 cv2.destroyAllWindows()
