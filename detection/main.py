@@ -87,6 +87,10 @@ elif sourceType == 'video' or sourceType == 'camera':
         videoName = os.path.join('saved_videos', f'video_{timestamp}.mp4')
         videoRecorder = cv2.VideoWriter(videoName, cv2.VideoWriter_fourcc(*'mp4v'), 30, (resWidth, resHeight))
 
+windowName = 'Detection results'
+cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
+cv2.resizeWindow(windowName, 1920, 1080)
+
 detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD)
 vizualizer = Vizualizer()
 
@@ -134,7 +138,7 @@ while True:
     vizualizer.draw(frame, results)
     if sourceType == 'video' or sourceType == 'camera':
         vizualizer.showFps(frame, fpsMA)
-    cv2.imshow('Detection results', frame)
+    cv2.imshow(windowName, frame)
 
     if RECORD_FLAG and (sourceType == 'video' or sourceType == 'camera'):
         videoRecorder.write(frame)
@@ -153,10 +157,12 @@ while True:
         filename = os.path.join('saved_frames', f'frame_{timestamp}.png')
         cv2.imwrite(filename, frame)
 
+'''
 if sourceType == 'video' or 'folder':
     vizualizer.plotBenchmark(times, SOURCE) # dodac argument device=RPI4 podczas benchmarku dla niego
 elif sourceType == 'camera':
     vizualizer.plotBenchmark(times, sourceType) # dodac argument device=RPI4 podczas benchmarku dla niego
+'''
 
 if sourceType == 'video' or sourceType == 'camera':
     cap.release()
