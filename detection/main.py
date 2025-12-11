@@ -10,6 +10,7 @@ import numpy as np
 
 from detector import Detector
 from vizualizer import Vizualizer
+from camera import ThreadedCamera
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', help='Path to YOLO model file (example: "runs/detect/train/weights/best.pt")',
@@ -23,6 +24,8 @@ parser.add_argument('--resolution', help='Resolution in WxH to display inference
                     otherwise, match source resolution',
                     default=None)
 parser.add_argument('--record', help='Add this flag to save detection results as MP4 file. Works only for video and camera sources.', action='store_true')
+parser.add_argument('--device', help='Device to run inference on (example: "0" for GPU, "cpu" for CPU)', default='0')
+parser.add_argument('--headless', action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
 MODEL_PATH = args.model
@@ -30,9 +33,12 @@ SOURCE = args.source
 CONFIDENCE_THRESHOLD = args.thresh
 RESOLUTION = args.resolution
 RECORD_FLAG = args.record
+DEVICE = args.device
+HEADLESS = args.headless
 
 IMAGE_EXTENSIONS = ['.jpg', '.JPG', '.jpeg', '.JPEG', '.png', '.PNG', '.bmp', '.BMP']
 VIDEO_EXTENSIONS = ['.avi', '.mov', '.mp4', '.mkv', '.wmv']
+
 
 if os.path.isdir(SOURCE):
     sourceType = 'folder'
@@ -70,10 +76,7 @@ elif sourceType == 'video' or sourceType == 'camera':
     if sourceType == 'video':
         cap = cv2.VideoCapture(SOURCE)
     else:
-        cap = cv2.VideoCapture(SOURCE, cv2.CAP_FFMPEG)
-        if not cap.isOpened():
-            print(f'RTSP stream {SOURCE} could not be opened.')
-            sys.exit(1)
+        cap = ThreadedCamera(SOURCE)
     if RESOLUTION:
         _ = cap.set(cv2.CAP_PROP_FRAME_WIDTH, resWidth)
         _ = cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resHeight)
@@ -91,12 +94,13 @@ windowName = 'Detection results'
 cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
 cv2.resizeWindow(windowName, 1920, 1080)
 
-detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD)
+detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD, device=DEVICE)
 vizualizer = Vizualizer()
 
-fpsMA = 0.0 # Moving Average zeby wygladzic
+prev_frame_id = -1
+fpsMA = 0.0  # Moving Average zeby wygladzic
 fpsMABuffer = []
-fpsMAThreshold = 200
+fpsMAThreshold = 30
 imageCount = 0
 times = []
 while True:
@@ -112,6 +116,13 @@ while True:
 
     elif sourceType == 'video' or sourceType == 'camera':
         ret, frame = cap.read()
+
+        if sourceType == 'camera':
+            if hasattr(cap, 'frame_id'):
+                if cap.frame_id == prev_frame_id:
+                    time.sleep(0.005)
+                    continue
+
         if not ret:
             if sourceType == 'video':
                 print('Reached end of the video file. Exiting program.')
@@ -124,7 +135,11 @@ while True:
 
     inferenceStartTime = time.perf_counter()
 
-    results = detector.detect(frame)
+    results = detector.detect_tiled(
+        frame,
+        tile_size=640,
+        overlap=0.1
+    )
 
     endTime = time.perf_counter()
     times.append(endTime - inferenceStartTime)
@@ -136,9 +151,10 @@ while True:
     print(f'Frame capture and inference time: {(endTime - startTime)*1000} ms')
 
     vizualizer.draw(frame, results)
-    if sourceType == 'video' or sourceType == 'camera':
-        vizualizer.showFps(frame, fpsMA)
-    cv2.imshow(windowName, frame)
+    if not HEADLESS:
+        if sourceType == 'video' or sourceType == 'camera':
+            vizualizer.showFps(frame, fpsMA)
+        cv2.imshow(windowName, frame)
 
     if RECORD_FLAG and (sourceType == 'video' or sourceType == 'camera'):
         videoRecorder.write(frame)
@@ -149,9 +165,9 @@ while True:
         key = cv2.waitKey(1)
     if key == ord('q') or key == ord('Q') or key == 27:
         break
-    elif key == ord('p') or key == ord('P'): # pause
+    elif key == ord('p') or key == ord('P'):  # pause
         cv2.waitKey()
-    elif key == ord('s') or key == ord('S'): # save
+    elif key == ord('s') or key == ord('S'):  # save
         os.makedirs('saved_frames', exist_ok=True)
         timestamp = datetime.now().strftime('%d%m%Y_%H%M%S')
         filename = os.path.join('saved_frames', f'frame_{timestamp}.png')

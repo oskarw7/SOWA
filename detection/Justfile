@@ -1,0 +1,2 @@
+test:
+  python main.py --model yolo11n --source camera --device cuda #--headless --record --resolution 1920x1080
