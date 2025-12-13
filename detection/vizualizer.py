@@ -17,40 +17,40 @@ class Vizualizer:
 
         for detection in detections:
             color = self.boxColors[detection.classIndex % len(self.boxColors)]
-            cv2.rectangle(frame, (detection.xMin, detection.yMin), (detection.xMax, detection.yMax), color, 2)
+            cv2.rectangle(frame, (detection.minX, detection.minY), (detection.maxX, detection.maxY), color, 2)
 
             # Wizualizacja offsetow
             cv2.line(frame, (detection.centerX, detection.centerY), (int(w/2), int(h/2)), color, 1)
             label = f'{detection.className}: {int(detection.confidence * 100)}% Off:({detection.offsetX}, {detection.offsetY})'
 
             labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-            labelYMin = max(detection.yMin, labelSize[1] + 10)
-            cv2.rectangle(frame, (detection.xMin, labelYMin - labelSize[1] - 10),
-                          (detection.xMin + labelSize[0], labelYMin + baseLine - 10), color,
+            labelMinY = max(detection.minY, labelSize[1] + 10)
+            cv2.rectangle(frame, (detection.minX, labelMinY - labelSize[1] - 10),
+                          (detection.minX + labelSize[0], labelMinY + baseLine - 10), color,
                           cv2.FILLED)
-            cv2.putText(frame, label, (detection.xMin, labelYMin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0),
+            cv2.putText(frame, label, (detection.minX, labelMinY - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0),
                         1)
 
-    def draw_grid(self, frame: np.ndarray, tile_size: int, overlap: float) -> None:
+    def drawGrid(self, frame: np.ndarray, tileSize: int, overlap: float) -> None:
         """
         Draws the boundaries of the inference tiles with a thin line.
         """
         imgH, imgW = frame.shape[:2]
-        step = int(tile_size * (1 - overlap))
-        grid_color = (255, 255, 255)
+        step = int(tileSize * (1 - overlap))
+        gridColor = (255, 255, 255)
 
         for y in range(0, imgH, step):
             for x in range(0, imgW, step):
-                x_start = min(x, imgW - tile_size)
-                y_start = min(y, imgH - tile_size)
-                x_start = max(0, x_start)
-                y_start = max(0, y_start)
+                startX = min(x, imgW - tileSize)
+                startY = min(y, imgH - tileSize)
+                startX = max(0, startX)
+                startY = max(0, startY)
 
-                cv2.rectangle(frame, (x_start, y_start), (x_start + tile_size, y_start + tile_size), grid_color, 1)
+                cv2.rectangle(frame, (startX, startY), (startX + tileSize, startY + tileSize), gridColor, 1)
 
-                if x_start + tile_size >= imgW:
+                if startX + tileSize >= imgW:
                     break
-            if y_start + tile_size >= imgH:
+            if startY + tileSize >= imgH:
                 break
 
     def showFps(self, frame: np.ndarray, fps: float) -> None:

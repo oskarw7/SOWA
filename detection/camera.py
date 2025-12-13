@@ -14,7 +14,7 @@ class ThreadedCamera:
         self.status = False
         self.frame = None
         # Do pomijania klatek po inferencji
-        self.frame_id = 0
+        self.frameId = 0
 
         if self.capture.isOpened():
             self.status, self.frame = self.capture.read()
@@ -27,7 +27,7 @@ class ThreadedCamera:
                 if status:
                     self.status = status
                     self.frame = frame
-                    self.frame_id += 1
+                    self.frameId += 1
             else:
                 break
 

@@ -120,7 +120,7 @@ while True:
 
         if sourceType == 'camera':
             if hasattr(cap, 'frame_id'):
-                if cap.frame_id == prev_frame_id:
+                if cap.frameId == prev_frame_id:
                     time.sleep(0.005)
                     continue
 
@@ -136,11 +136,7 @@ while True:
 
     inferenceStartTime = time.perf_counter()
 
-    results = detector.detect_tiled(
-        frame,
-        tile_size=640,
-        overlap=0.1
-    )
+    results = detector.detectTiled(frame, tileSize=640, overlap=0.1)
 
     endTime = time.perf_counter()
     times.append(endTime - inferenceStartTime)
@@ -152,9 +148,9 @@ while True:
     print(f'Frame capture and inference time: {(endTime - startTime)*1000} ms')
 
     vizualizer.draw(frame, results)
-    vizualizer.draw_grid(
+    vizualizer.drawGrid(
             frame,
-            tile_size=640,
+            tileSize=640,
             overlap=0.0)
     if not HEADLESS:
         if sourceType == 'video' or sourceType == 'camera':
