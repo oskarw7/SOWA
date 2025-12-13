@@ -90,9 +90,10 @@ elif sourceType == 'video' or sourceType == 'camera':
         videoName = os.path.join('saved_videos', f'video_{timestamp}.mp4')
         videoRecorder = cv2.VideoWriter(videoName, cv2.VideoWriter_fourcc(*'mp4v'), 30, (resWidth, resHeight))
 
-windowName = 'Detection results'
-cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
-cv2.resizeWindow(windowName, 1920, 1080)
+if not HEADLESS:
+    windowName = 'Detection results'
+    cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(windowName, 1920, 1080)
 
 detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD, device=DEVICE)
 vizualizer = Vizualizer()

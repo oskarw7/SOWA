@@ -28,3 +28,4 @@ devenv.local.yaml
 saved_*/
 *.pt
 Ultralytics/
+data/
