@@ -31,6 +31,28 @@ class Vizualizer:
             cv2.putText(frame, label, (detection.xMin, labelYMin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0),
                         1)
 
+    def draw_grid(self, frame: np.ndarray, tile_size: int, overlap: float) -> None:
+        """
+        Draws the boundaries of the inference tiles with a thin line.
+        """
+        imgH, imgW = frame.shape[:2]
+        step = int(tile_size * (1 - overlap))
+        grid_color = (255, 255, 255)
+
+        for y in range(0, imgH, step):
+            for x in range(0, imgW, step):
+                x_start = min(x, imgW - tile_size)
+                y_start = min(y, imgH - tile_size)
+                x_start = max(0, x_start)
+                y_start = max(0, y_start)
+
+                cv2.rectangle(frame, (x_start, y_start), (x_start + tile_size, y_start + tile_size), grid_color, 1)
+
+                if x_start + tile_size >= imgW:
+                    break
+            if y_start + tile_size >= imgH:
+                break
+
     def showFps(self, frame: np.ndarray, fps: float) -> None:
         cv2.putText(frame, f'FPS: {fps:0.2f}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (51, 255, 51), 2)
 
