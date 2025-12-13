@@ -53,8 +53,6 @@ elif os.path.isfile(SOURCE):
         sys.exit(0)
 elif SOURCE == 'camera':
     SOURCE = 'rtsp://admin:admin1234@192.168.5.190:554/main'
-    # INFO: do sprawdzenia, bylo w pierwotnym kodzie z RPI4; URL podawany w kodzie dla wygody
-    # os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS']='rtsp_transport;tcp'
     sourceType = 'camera'
 else:
     print(f'Input {SOURCE} is invalid. Please try again.')
@@ -176,9 +174,9 @@ while True:
 
 '''
 if sourceType == 'video' or 'folder':
-    vizualizer.plotBenchmark(times, SOURCE) # dodac argument device=RPI4 podczas benchmarku dla niego
+    vizualizer.plotBenchmark(times, SOURCE)
 elif sourceType == 'camera':
-    vizualizer.plotBenchmark(times, sourceType) # dodac argument device=RPI4 podczas benchmarku dla niego
+    vizualizer.plotBenchmark(times, sourceType)
 '''
 
 if sourceType == 'video' or sourceType == 'camera':
