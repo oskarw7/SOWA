@@ -26,16 +26,20 @@ class Detection:
 
 
 class Detector:
-    def __init__(self, modelPath: str, confidenceThreshold: float, device: str = '0'):
-        # Added device parameter (default '0' for GPU)
+    def __init__(self, modelPath: str, confidenceThreshold: float, device: str = '0', classes=None):
+        # Default '0' for GPU
         self.device = device
         self.model = YOLO(modelPath, task='detect')
         self.labels = self.model.names
         self.confidenceThreshold = confidenceThreshold
+        # Default [4, 8] sets only airplanes and boats to be detected
+        if classes is None:
+            classes = [4, 8]
+        self.classes = classes
 
     def detect(self, frame: np.ndarray) -> list[Detection]:
         # Pass device to the model
-        return self._process_results(self.model(frame, device=self.device, verbose=False)[0], frame.shape, offset=(0, 0))
+        return self._process_results(self.model(frame, device=self.device, verbose=False, classes=self.classes)[0], frame.shape, offset=(0, 0))
 
     def detect_tiled(self, frame: np.ndarray, tile_size: int = 640, overlap: float = 0.25) -> list[Detection]:
         """
@@ -58,7 +62,7 @@ class Detector:
                 crop = frame[y_start:y_start+tile_size, x_start:x_start+tile_size]
 
                 # Pass device to the model
-                results = self.model(crop, device=self.device, verbose=False, imgsz=tile_size)
+                results = self.model(crop, device=self.device, verbose=False, classes=self.classes, imgsz=tile_size)
 
                 tile_detections = self._process_results(results[0], frame.shape, offset=(x_start, y_start))
                 all_detections.extend(tile_detections)
