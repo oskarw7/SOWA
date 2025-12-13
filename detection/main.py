@@ -152,6 +152,10 @@ while True:
     print(f'Frame capture and inference time: {(endTime - startTime)*1000} ms')
 
     vizualizer.draw(frame, results)
+    vizualizer.draw_grid(
+            frame,
+            tile_size=640,
+            overlap=0.0)
     if not HEADLESS:
         if sourceType == 'video' or sourceType == 'camera':
             vizualizer.showFps(frame, fpsMA)
