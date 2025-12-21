@@ -53,8 +53,6 @@ elif os.path.isfile(SOURCE):
         sys.exit(0)
 elif SOURCE == 'camera':
     SOURCE = 'rtsp://admin:admin1234@192.168.5.190:554/main'
-    # INFO: do sprawdzenia, bylo w pierwotnym kodzie z RPI4; URL podawany w kodzie dla wygody
-    # os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS']='rtsp_transport;tcp'
     sourceType = 'camera'
 else:
     print(f'Input {SOURCE} is invalid. Please try again.')
@@ -120,7 +118,7 @@ while True:
 
         if sourceType == 'camera':
             if hasattr(cap, 'frame_id'):
-                if cap.frame_id == prev_frame_id:
+                if cap.frameId == prev_frame_id:
                     time.sleep(0.005)
                     continue
 
@@ -136,11 +134,7 @@ while True:
 
     inferenceStartTime = time.perf_counter()
 
-    results = detector.detect_tiled(
-        frame,
-        tile_size=640,
-        overlap=0.1
-    )
+    results = detector.detectTiled(frame, tileSize=640, overlap=0.1)
 
     endTime = time.perf_counter()
     times.append(endTime - inferenceStartTime)
@@ -152,9 +146,9 @@ while True:
     print(f'Frame capture and inference time: {(endTime - startTime)*1000} ms')
 
     vizualizer.draw(frame, results)
-    vizualizer.draw_grid(
+    vizualizer.drawGrid(
             frame,
-            tile_size=640,
+            tileSize=640,
             overlap=0.0)
     if not HEADLESS:
         if sourceType == 'video' or sourceType == 'camera':
@@ -180,9 +174,9 @@ while True:
 
 '''
 if sourceType == 'video' or 'folder':
-    vizualizer.plotBenchmark(times, SOURCE) # dodac argument device=RPI4 podczas benchmarku dla niego
+    vizualizer.plotBenchmark(times, SOURCE)
 elif sourceType == 'camera':
-    vizualizer.plotBenchmark(times, sourceType) # dodac argument device=RPI4 podczas benchmarku dla niego
+    vizualizer.plotBenchmark(times, sourceType)
 '''
 
 if sourceType == 'video' or sourceType == 'camera':
