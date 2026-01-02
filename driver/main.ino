@@ -4,11 +4,18 @@
 
 #define HDirPin 10
 #define HPulPin 11
-#define HRatio 1.53125
 
 #define VDirPin 12
 #define VPulPin 13
-#define VRatio 1.79675
+
+#define belt_height 6
+
+#define smaller_belt_drive_radius 10.097
+#define horizontal_bigger_belt_drive_radius 21.5   
+#define vertical_bigger_belt_drive_radius 35.748
+
+#define HRatio (horizontal_bigger_belt_drive_radius + belt_height/2) / (smaller_belt_drive_radius + belt_height/2) 
+#define VRatio (vertical_bigger_belt_drive_radius + belt_height/2) / (smaller_belt_drive_radius + belt_height/2) 
 
 
 class StepperHandler {
