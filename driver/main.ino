@@ -1,88 +1,62 @@
-#DEFINE DEFAULT_STEP_DEG 1.8 // 1 step is equal to 1.8 degrees
-#DEFINE FULL_SPIN_DEG 360
+#include <AccelStepper.h>
 
-// Horizontal motor
-#DEFINE HDirPin 10
-#DEFINE HPulPin 11
-#DEFINE HRatio 1.53125
-#DEFINE HEXP 0
+#define FULL_SPIN_DEG 360
 
-// Vertical motor
-#DEFINE VDirPin 12
-#DEFINE VPulPin 13
-#DEFINE VRatio 1.79675
-#DEFINE VEXP 0
+#define HDirPin 10
+#define HPulPin 11
+#define HRatio 1.53125
 
-struct constraint_t {
-	double low;
-	double high;
+#define VDirPin 12
+#define VPulPin 13
+#define VRatio 1.79675
+
+
+class StepperHandler {
+    private:
+        AccelStepper stepper; 
+        float stepsPerDegree; 
+
+    public:
+        StepperHandler(byte stepPin, byte dirPin, int microsteps, double gearRatio) : stepper(AccelStepper::DRIVER, stepPin, dirPin) {
+            int motorStepsPerRev = microsteps;
+            float cameraStepsPerRev = motorStepsPerRev * gearRatio;
+
+            stepsPerDegree = cameraStepsPerRev / FULL_SPIN_DEG;
+        }
+
+    void init(float maxSpeed, float acceleration) {
+        stepper.setMaxSpeed(maxSpeed);
+        stepper.setAcceleration(acceleration);
+    }
+
+    void moveRelative(float degrees) {
+        stepper.move((long)(degrees * stepsPerDegree));
+    }
+
+    void moveToAngle(float degrees) {
+        stepper.moveTo((long)(degrees * stepsPerDegree));
+    }
+
+    bool run() {
+      return stepper.run();
+    }
 };
 
-class StepperMotor {
-	private:
-		byte directionPin;
-		byte movePin;
-
-		byte directionState; // idk yet
-
-		long stepsCounter;
-
-		double stepSize; // degrees
-		
-		constraint_t movementRange;
-
-	public:
-	  	StepperMotor(byte drP, byte mvP, int stepSizeExp, double gearRatio, double rLow = 0, double rHigh = 0) {
-			directionState = HIGH;
-			stepsCounter = 0;
-			movementRange.low = rLow;
-			movementRange.high = rHigh;
-							
-
-			stepSize = DEFAULT_STEP_DEG / (1L << stepSizeExp) * gearRatio;
-			
-	  		directionPin = drP;
-	  		pinMode(directionPin, OUTPUT);
-			digitalWrite(dirPin, directionState);		
-			
-			movePin = mvP
-			pinMode(movePin, OUTPUT);
-		}
-
-	void checkMoveViable(){
-		return;
-	}
-
-	void move() {
-		digitalWrite(movePin, HIGH);
-		delayMicroseconds(10);
-		digitalWrite(movePin, LOW);
-		stepsCounter += (directionState == HIGH ? 1 : -1);
-	}
-
-	void changeDirection() {
-		directionState = (directionState == HIGH ? LOW : HIGH);
-		digitalWrite(directionPin, directionState);
-	}
-
-	void spin360() {
-		int totalSteps = FULL_SPIN_DEG/stepSize;
-		for(int i = 0; i < totalSteps; ++i){
-			this->move();
-			delay(1); // wait for the motor to move
-		}
-	}
-};
-
-
-StepperMotor horizontalMotor(HDirPin, HPulPin, HEXP, HRatio);
-StepperMotor verticalMotor(VDirPin, VPulPin, VEXP, VRatio);
+StepperHandler horizontalMotor(HPulPin, HDirPin, 800, HRatio);
+//StepperHandler verticalMotor(VDirPin, VPulPin, 400, VRatio);
 
 void setup() {
-  // Constructors handle setup
+  Serial.begin(115200);
+
+  horizontalMotor.init(4000.0, 1000.0); 
+  //verticalMotor.init(4000.0, 1000.0);
 }
+int i = 1;
 
 void loop() {
-  // showcase
-  
+    if(!horizontalMotor.run()){
+      horizontalMotor.moveRelative(i);
+      //i+=1;
+      delay(10);
+    }
 }
