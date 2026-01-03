@@ -5,11 +5,14 @@
 // Horizontal motor
 #define HDirPin 10
 #define HPulPin 11
+#define HMaxSpeed 4000.0
+#define HAccel 1000.0
 
 // Vertical motor
 #define VDirPin 12
 #define VPulPin 13
-
+#define VMaxSpeed 4000.0
+#define VAccel 1000.0
 
 // Gear ratios calculation
 #define belt_height 6
@@ -96,8 +99,8 @@ String message[MAX_MESSAGE_SUBSTRINGS];
 void setup() {
   Serial.begin(115200);
 
-  horizontalMotor.init(4000.0, 1000.0); 
-  verticalMotor.init(4000.0, 1000.0);
+  horizontalMotor.init(HMaxSpeed, HAccel); 
+  verticalMotor.init(VMaxSpeed, VAccel);
 }
 
 
