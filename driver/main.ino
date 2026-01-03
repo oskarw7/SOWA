@@ -10,6 +10,7 @@
 #define VDirPin 12
 #define VPulPin 13
 
+
 // Gear ratios calculation
 #define belt_height 6
 
@@ -20,8 +21,16 @@
 #define HRatio (horizontal_bigger_belt_drive_radius + belt_height/2) / (smaller_belt_drive_radius + belt_height/2) 
 #define VRatio (vertical_bigger_belt_drive_radius + belt_height/2) / (smaller_belt_drive_radius + belt_height/2) 
 
-// Serial input ex. "move right 200"
+
+// Serial input 
+// ex. "move right 25.3",
+// "stop horizontal"
 #define MAX_MESSAGE_SUBSTRINGS 10
+#define ACTION_IDX 0
+#define DIRECTION_IDX 1
+#define SELECTION_IDX 1
+#define ANGLE_IDX 2
+
 
 class StepperHandler {
     private:
@@ -52,46 +61,114 @@ class StepperHandler {
     bool run() {
       return stepper.run();
     }
+
+    void stop() {
+    	stepper.stop();
+    }
 };
 
-StepperHandler horizontalMotor(HPulPin, HDirPin, 800, HRatio);
-//StepperHandler verticalMotor(VDirPin, VPulPin, 400, VRatio);
 
 // Placeholder for future implementation
 int string_split(String inputString, char delimiter, String outputString[]){
-	return;
+	int subStringCount = 0;
+	int previousCutoff = 0;
+
+	for(int i = 0; i < inputString.length(); ++i) {
+		if (inputString[i] == delimiter) {
+			outputString[subStringCount++] = inputString.substring(previousCutoff, i);
+
+            previousCutoff = i+1;
+		}
+	}
+    // take the last one
+    outputString[subStringCount++] = inputString.substring(previousCutoff, inputString.length());
+
+	return subStringCount;
 }
+
+
+StepperHandler horizontalMotor(HPulPin, HDirPin, 800, HRatio);
+StepperHandler verticalMotor(VDirPin, VPulPin, 400, VRatio);
+
+String message[MAX_MESSAGE_SUBSTRINGS];
+
 
 void setup() {
   Serial.begin(115200);
 
   horizontalMotor.init(4000.0, 1000.0); 
-  //verticalMotor.init(4000.0, 1000.0);
+  verticalMotor.init(4000.0, 1000.0);
 }
-int i = 1;
-String message[MAX_MESSAGE_SUBSTRINGS];
-String serialInput = "";
+
 
 void loop() {
-	if(Serial.available() > 0) {
-    serialInput = Serial.readStringUntil('\n');
+    horizontalMotor.run();
+    verticalMotor.run();
+
+	if (Serial.available() > 0) {
+        String serialInput = Serial.readStringUntil('\n');
 	
 		// Clear previous message
 		for(int i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
+            if(message[i].equals("")) break;
+
 			message[i] = "";
+		}
+
+		string_split(serialInput, ' ', message);
+
+        // Sanitize input
+        for(int i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
+			if(message[i].equals("")) break;
+
+            message[i].trim();
+            message[i].toLowerCase();
 		}
 	}
 
-	if(serialInput.equals("test")) {
-		// horizontalMotor.moveRelative(-100);	
-    Serial.println("received test");
+	
+	String act = message[ACTION_IDX];
+	if (act.equals("move")){
+		float angle = message[ANGLE_IDX].toFloat();
+		String dir = message[DIRECTION_IDX];
+		
+					 
+		if ((dir.equals("right") || dir.equals("left"))) {
+            angle *= (dir.equals("right") ? 1 : (-1));
+			horizontalMotor.moveRelative(angle);
+            
+            Serial.println("Moving hor: ");
+            Serial.println(angle);
+		}
+		
+		if ((dir.equals("up") || dir.equals("down"))) {
+			angle *= (dir.equals("down") ? 1 : (-1));
+            verticalMotor.moveRelative(angle);
+            
+            Serial.println("Moving ver: ");
+            Serial.println(angle);
+		}
+					
+		delay(100); // Temporary 
+	} else if (act.equals("stop")) {
+		String sel = message[SELECTION_IDX];
+        
+        if (sel.equals("horizontal")){
+			horizontalMotor.stop();
+			Serial.println("Stopping hor");
+		} else if (sel.equals("vertical")) {
+			verticalMotor.stop();
+            Serial.println("Stopping ver");
+		} else if ((sel.equals("both"))) {
+			horizontalMotor.stop();
+			verticalMotor.stop();
+            Serial.println("Stopping both");
+		}
+		
+	} else if (act.equals("showcase")) {
+		// For showcase of full range of motion
+		Serial.println("Showcase not implemented yet");
 	}
 
-    /*if(!horizontalMotor.run()){
-      horizontalMotor.moveRelative(i);
-      //i+=1;
-      delay(10);
-    }*/
-
-    serialInput = "";
+    message[ACTION_IDX] = "";
 }
