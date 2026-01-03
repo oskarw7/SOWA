@@ -7,12 +7,14 @@
 #define HPulPin 11
 #define HMaxSpeed 4000.0
 #define HAccel 1000.0
+#define HStepsPerSpin 800
 
 // Vertical motor
 #define VDirPin 12
 #define VPulPin 13
 #define VMaxSpeed 4000.0
 #define VAccel 1000.0
+#define VStepsPerSpin 400
 
 // Gear ratios calculation
 #define belt_height 6
@@ -90,8 +92,8 @@ int string_split(String inputString, char delimiter, String outputString[]){
 }
 
 
-StepperHandler horizontalMotor(HPulPin, HDirPin, 800, HRatio);
-StepperHandler verticalMotor(VDirPin, VPulPin, 400, VRatio);
+StepperHandler horizontalMotor(HPulPin, HDirPin, HStepsPerSpin, HRatio);
+StepperHandler verticalMotor(VDirPin, VPulPin, VStepsPerSpin, VRatio);
 
 String message[MAX_MESSAGE_SUBSTRINGS];
 
