@@ -58,6 +58,8 @@ class StepperHandler {
             stepper->setDirectionPin(dirPin);
             stepper->setSpeedInHz(speed);               // Max ~200kHz, steps/second
             stepper->setAcceleration(acceleration);
+
+            Serial.println("Initialization of motor succesful");
         }
     }
 
@@ -67,6 +69,10 @@ class StepperHandler {
 
     void moveToAngle(float degrees) {
         stepper->moveTo((long)(degrees * stepsPerDegree));
+    }
+
+    MoveResultCode moveByAcceleration(int32_t acceleration, bool allow_reverse = true){
+        return stepper->moveByAcceleration(acceleration, allow_reverse);
     }
 
     void stopMove() {
@@ -96,10 +102,18 @@ int string_split(String inputString, char delimiter, String outputString[]){
 	return subStringCount;
 }
 
+bool isNumber(String inputString){
+    for(uint8_t i = 0; i < inputString.length(); ++i){
+        if(!isDigit(inputString[i])) return false;
+    }
+
+    return true;
+}
+
 FastAccelStepperEngine engine = FastAccelStepperEngine();  
 
-StepperHandler* horizontalMotor = NULL;
-StepperHandler* verticalMotor= NULL;
+StepperHandler* horizontalMotor = nullptr;
+StepperHandler* verticalMotor = nullptr;
 
 String message[MAX_MESSAGE_SUBSTRINGS];
 
@@ -137,49 +151,61 @@ void loop() {
 		}
 	}
 
-	
-	String act = message[ACTION_IDX];
-	if (act.equals("move")){
-		float angle = message[ANGLE_IDX].toFloat();
-		String dir = message[DIRECTION_IDX];
-		
-					 
-		if ((dir.equals("right") || dir.equals("left"))) {
-            angle *= (dir.equals("right") ? 1 : (-1));
-			horizontalMotor->moveRelative(angle);
-            
-            Serial.println("Moving hor: ");
-            Serial.println(angle);
-		}
-		
-		if ((dir.equals("up") || dir.equals("down"))) {
-			angle *= (dir.equals("down") ? 1 : (-1));
-            verticalMotor->moveRelative(angle);
-            
-            Serial.println("Moving ver: ");
-            Serial.println(angle);
-		}
-					
-		delay(100); // Temporary 
-	} else if (act.equals("stop")) {
-		String sel = message[SELECTION_IDX];
-        
-        if (sel.equals("horizontal")){
-			horizontalMotor->stopMove();
-			Serial.println("Stopping hor");
-		} else if (sel.equals("vertical")) {
-			verticalMotor->stopMove();
-            Serial.println("Stopping ver");
-		} else if ((sel.equals("both"))) {
-			horizontalMotor->stopMove();
-			verticalMotor->stopMove();
-            Serial.println("Stopping both");
-		}
-		
-	} else if (act.equals("showcase")) {
-		// For showcase of full range of motion
-		Serial.println("Showcase not implemented yet");
-	}
+	if(!message[ACTION_IDX].equals("")){
+        String act = message[ACTION_IDX];
+        if (act.equals("move")){
+            float angle = message[ANGLE_IDX].toFloat();
+            if (isNumber(message[ACCEL_IDX]) && isNumber(message[ANGLE_IDX])){
+                float accel = message[ACCEL_IDX].toFloat();
+                float accelHor = cos(angle * PI/180) * accel;
+                float accelVer = sin(angle * PI/180) * accel;
+                
+                horizontalMotor->moveByAcceleration(accelHor);
+                verticalMotor->moveByAcceleration(accelVer);
 
+                Serial.print("Moving the camera, angle: ");
+                Serial.print(angle);
+                Serial.print(" accel: ");
+                Serial.println(accel);
+            } else {
+                String dir = message[DIRECTION_IDX];
+            
+                        
+                if ((dir.equals("right") || dir.equals("left"))) {
+                    angle *= (dir.equals("right") ? 1 : (-1));
+                    horizontalMotor->moveRelative(angle);
+                    
+                    Serial.print("Moving hor: ");
+                    Serial.println(angle);
+                } else if ((dir.equals("up") || dir.equals("down"))) {
+                    angle *= (dir.equals("down") ? 1 : (-1));
+                    verticalMotor->moveRelative(angle);
+                    
+                    Serial.print("Moving ver: ");
+                    Serial.println(angle);
+                }
+            }
+        } else if (act.equals("stop")) {
+            String sel = message[SELECTION_IDX];
+            
+            if (sel.equals("horizontal")){
+                horizontalMotor->stopMove();
+                Serial.println("Stopping hor");
+            } else if (sel.equals("vertical")) {
+                verticalMotor->stopMove();
+                Serial.println("Stopping ver");
+            } else if ((sel.equals("both"))) {
+                horizontalMotor->stopMove();
+                verticalMotor->stopMove();
+                Serial.println("Stopping both");
+            }
+            
+        } else if (act.equals("showcase")) {
+            // For showcase of full range of motion
+            Serial.println("Showcase not implemented yet");
+        }
+    }
+
+    delay(2000); // Temporary 
     message[ACTION_IDX] = "";
 }
