@@ -1,18 +1,18 @@
-#include <AccelStepper.h>
+#include "FastAccelStepper.h"
 
 #define FULL_SPIN_DEG 360
 
 // Horizontal motor
 #define HDirPin 10
 #define HPulPin 11
-#define HMaxSpeed 4000.0
-#define HAccel 1000.0
+#define HSpeed 1000.0       // steps / s
+#define HAccel 1000.0        // steps / s^2
 #define HStepsPerSpin 800
 
 // Vertical motor
 #define VDirPin 12
 #define VPulPin 13
-#define VMaxSpeed 4000.0
+#define VSpeed 1000.0
 #define VAccel 1000.0
 #define VStepsPerSpin 400
 
@@ -28,57 +28,62 @@
 
 
 // Serial input 
-// ex. "move right 25.3",
-// "stop horizontal"
+// ex. "move 25.3 right",
+// "stop horizontal",
+// "move 45 200"
 #define MAX_MESSAGE_SUBSTRINGS 10
 #define ACTION_IDX 0
-#define DIRECTION_IDX 1
+#define DIRECTION_IDX 2
 #define SELECTION_IDX 1
-#define ANGLE_IDX 2
-
+#define ANGLE_IDX 1
+#define ACCEL_IDX 2
 
 class StepperHandler {
     private:
-        AccelStepper stepper; 
+        FastAccelStepper* stepper = NULL; 
         float stepsPerDegree; 
 
     public:
-        StepperHandler(byte stepPin, byte dirPin, int microsteps, double gearRatio) : stepper(AccelStepper::DRIVER, stepPin, dirPin) {
+        StepperHandler(FastAccelStepperEngine &eng, uint8_t stepPin, uint16_t microsteps, float gearRatio) {
+            stepper = eng.stepperConnectToPin(stepPin);
+            
             int motorStepsPerRev = microsteps;
             float cameraStepsPerRev = motorStepsPerRev * gearRatio;
 
             stepsPerDegree = cameraStepsPerRev / FULL_SPIN_DEG;
         }
 
-    void init(float maxSpeed, float acceleration) {
-        stepper.setMaxSpeed(maxSpeed);
-        stepper.setAcceleration(acceleration);
+    void init(float speed, float acceleration, uint8_t dirPin) {
+        if(stepper){
+            stepper->setDirectionPin(dirPin);
+            stepper->setSpeedInHz(speed);               // Max ~200kHz, steps/second
+            stepper->setAcceleration(acceleration);
+        }
     }
 
     void moveRelative(float degrees) {
-        stepper.move((long)(degrees * stepsPerDegree));
+        stepper->move((long)(degrees * stepsPerDegree));
     }
 
     void moveToAngle(float degrees) {
-        stepper.moveTo((long)(degrees * stepsPerDegree));
+        stepper->moveTo((long)(degrees * stepsPerDegree));
     }
 
-    bool run() {
-      return stepper.run();
+    void stopMove() {
+    	stepper->stopMove();
     }
 
-    void stop() {
-    	stepper.stop();
+    void forceStop() {
+    	stepper->forceStop();
     }
 };
 
 
-// Placeholder for future implementation
 int string_split(String inputString, char delimiter, String outputString[]){
-	int subStringCount = 0;
-	int previousCutoff = 0;
+	uint8_t subStringCount = 0;
+	uint8_t previousCutoff = 0;
 
-	for(int i = 0; i < inputString.length(); ++i) {
+	for(uint8_t i = 0; i < inputString.length(); ++i) {
 		if (inputString[i] == delimiter) {
 			outputString[subStringCount++] = inputString.substring(previousCutoff, i);
 
@@ -91,39 +96,40 @@ int string_split(String inputString, char delimiter, String outputString[]){
 	return subStringCount;
 }
 
+FastAccelStepperEngine engine = FastAccelStepperEngine();  
 
-StepperHandler horizontalMotor(HPulPin, HDirPin, HStepsPerSpin, HRatio);
-StepperHandler verticalMotor(VDirPin, VPulPin, VStepsPerSpin, VRatio);
+StepperHandler* horizontalMotor = NULL;
+StepperHandler* verticalMotor= NULL;
 
 String message[MAX_MESSAGE_SUBSTRINGS];
 
 
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
 
-  horizontalMotor.init(HMaxSpeed, HAccel); 
-  verticalMotor.init(VMaxSpeed, VAccel);
+    engine.init();
+    horizontalMotor = new StepperHandler(engine, HPulPin, HStepsPerSpin, HRatio);
+    verticalMotor = new StepperHandler(engine, VPulPin, VStepsPerSpin, VRatio);
+  
+    horizontalMotor->init(HSpeed, HAccel, HDirPin); 
+    verticalMotor->init(VSpeed, VAccel, VDirPin);
 }
 
 
 void loop() {
-    horizontalMotor.run();
-    verticalMotor.run();
-
 	if (Serial.available() > 0) {
         String serialInput = Serial.readStringUntil('\n');
 	
 		// Clear previous message
-		for(int i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
+		for(uint8_t i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
             if(message[i].equals("")) break;
 
 			message[i] = "";
 		}
-
 		string_split(serialInput, ' ', message);
 
         // Sanitize input
-        for(int i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
+        for(uint8_t i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
 			if(message[i].equals("")) break;
 
             message[i].trim();
@@ -140,7 +146,7 @@ void loop() {
 					 
 		if ((dir.equals("right") || dir.equals("left"))) {
             angle *= (dir.equals("right") ? 1 : (-1));
-			horizontalMotor.moveRelative(angle);
+			horizontalMotor->moveRelative(angle);
             
             Serial.println("Moving hor: ");
             Serial.println(angle);
@@ -148,7 +154,7 @@ void loop() {
 		
 		if ((dir.equals("up") || dir.equals("down"))) {
 			angle *= (dir.equals("down") ? 1 : (-1));
-            verticalMotor.moveRelative(angle);
+            verticalMotor->moveRelative(angle);
             
             Serial.println("Moving ver: ");
             Serial.println(angle);
@@ -159,14 +165,14 @@ void loop() {
 		String sel = message[SELECTION_IDX];
         
         if (sel.equals("horizontal")){
-			horizontalMotor.stop();
+			horizontalMotor->stopMove();
 			Serial.println("Stopping hor");
 		} else if (sel.equals("vertical")) {
-			verticalMotor.stop();
+			verticalMotor->stopMove();
             Serial.println("Stopping ver");
 		} else if ((sel.equals("both"))) {
-			horizontalMotor.stop();
-			verticalMotor.stop();
+			horizontalMotor->stopMove();
+			verticalMotor->stopMove();
             Serial.println("Stopping both");
 		}
 		
