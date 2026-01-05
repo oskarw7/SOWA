@@ -54,7 +54,7 @@ class StepperHandler {
         }
 
     void init(float speed, float acceleration, uint8_t dirPin) {
-        if(stepper){
+        if(stepper) {
             stepper->setDirectionPin(dirPin);
             stepper->setSpeedInHz(speed);               // Max ~200kHz, steps/second
             stepper->setAcceleration(acceleration);
@@ -71,7 +71,7 @@ class StepperHandler {
         stepper->moveTo((long)(degrees * stepsPerDegree));
     }
 
-    MoveResultCode moveByAcceleration(int32_t acceleration, bool allow_reverse = true){
+    MoveResultCode moveByAcceleration(int32_t acceleration, bool allow_reverse = true) {
         return stepper->moveByAcceleration(acceleration, allow_reverse);
     }
 
@@ -85,7 +85,7 @@ class StepperHandler {
 };
 
 
-int string_split(String inputString, char delimiter, String outputString[]){
+int string_split(String inputString, char delimiter, String outputString[]) {
 	uint8_t subStringCount = 0;
 	uint8_t previousCutoff = 0;
 
@@ -102,7 +102,7 @@ int string_split(String inputString, char delimiter, String outputString[]){
 	return subStringCount;
 }
 
-bool isNumber(String inputString){
+bool isNumber(String inputString) {
     for(uint8_t i = 0; i < inputString.length(); ++i){
         if(!isDigit(inputString[i])) return false;
     }
@@ -135,7 +135,7 @@ void loop() {
         String serialInput = Serial.readStringUntil('\n');
 	
 		// Clear previous message
-		for(uint8_t i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
+		for(uint8_t i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i) {
             if(message[i].equals("")) break;
 
 			message[i] = "";
@@ -143,7 +143,7 @@ void loop() {
 		string_split(serialInput, ' ', message);
 
         // Sanitize input
-        for(uint8_t i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i){
+        for(uint8_t i = 0; i < MAX_MESSAGE_SUBSTRINGS; ++i) {
 			if(message[i].equals("")) break;
 
             message[i].trim();
@@ -151,11 +151,11 @@ void loop() {
 		}
 	}
 
-	if(!message[ACTION_IDX].equals("")){
+	if(!message[ACTION_IDX].equals("")) {
         String act = message[ACTION_IDX];
-        if (act.equals("move")){
+        if (act.equals("move")) {
             float angle = message[ANGLE_IDX].toFloat();
-            if (isNumber(message[ACCEL_IDX]) && isNumber(message[ANGLE_IDX])){
+            if (isNumber(message[ACCEL_IDX]) && isNumber(message[ANGLE_IDX])) {
                 float accel = message[ACCEL_IDX].toFloat();
                 float accelHor = cos(angle * PI/180) * accel;
                 float accelVer = sin(angle * PI/180) * accel;
@@ -199,7 +199,6 @@ void loop() {
                 verticalMotor->stopMove();
                 Serial.println("Stopping both");
             }
-            
         } else if (act.equals("showcase")) {
             // For showcase of full range of motion
             Serial.println("Showcase not implemented yet");
