@@ -3,18 +3,20 @@
 #define FULL_SPIN_DEG 360
 
 // Horizontal motor
-#define HDirPin 10
-#define HPulPin 11
-#define HSpeed 1000.0       // steps / s
-#define HAccel 1000.0        // steps / s^2
-#define HStepsPerSpin 800
+#define HDirPin 12
+#define HPulPin 13
+#define HSpeed 20000.0       // steps / s
+#define HAccel 10000.0        // steps / s^2
+#define HStepsPerSpin 6400
 
 // Vertical motor
-#define VDirPin 12
-#define VPulPin 13
+#define VDirPin 10
+#define VPulPin 11
 #define VSpeed 1000.0
 #define VAccel 1000.0
-#define VStepsPerSpin 400
+#define VStepsPerSpin 6400
+#define MaxDegreesDown -20
+#define MaxDegreesUp 80
 
 // Gear ratios calculation
 #define belt_height 6
@@ -42,6 +44,7 @@ class StepperHandler {
     private:
         FastAccelStepper* stepper = NULL; 
         float stepsPerDegree; 
+
 
     public:
         StepperHandler(FastAccelStepperEngine &eng, uint8_t stepPin, uint16_t microsteps, float gearRatio) {
@@ -75,6 +78,10 @@ class StepperHandler {
         return stepper->moveByAcceleration(acceleration, allow_reverse);
     }
 
+    float getStepsPerDegree(){
+        return stepsPerDegree;
+    }
+
     void stopMove() {
     	stepper->stopMove();
     }
@@ -82,7 +89,36 @@ class StepperHandler {
     void forceStop() {
     	stepper->forceStop();
     }
+
+    int32_t getCurrentPosition(){
+        return stepper->getCurrentPosition();
+    }
+
+    uint32_t stepsToStop(){
+        return stepper->stepsToStop();
+    }
+
+    bool isRunning() {
+      return stepper->isRunning();
+    }
+
+    int8_t getMovementDirection() {
+        if(stepper->getCurrentSpeedInUs() == 0) return 0;
+        return stepper->getCurrentSpeedInUs() > 0 ? 1 : -1;
+    }
+
+    bool isStopping(){
+        return stepper->isStopping();
+    }
 };
+
+FastAccelStepperEngine engine = FastAccelStepperEngine();  
+
+StepperHandler* horizontalMotor = nullptr;
+StepperHandler* verticalMotor = nullptr;
+float VStepsPerDegree = 0.0;
+
+String message[MAX_MESSAGE_SUBSTRINGS];
 
 
 int string_split(String inputString, char delimiter, String outputString[]) {
@@ -110,13 +146,19 @@ bool isNumber(String inputString) {
     return true;
 }
 
-FastAccelStepperEngine engine = FastAccelStepperEngine();  
-
-StepperHandler* horizontalMotor = nullptr;
-StepperHandler* verticalMotor = nullptr;
-
-String message[MAX_MESSAGE_SUBSTRINGS];
-
+void checkMovementConstraints() {
+    int32_t VStopPos = (verticalMotor->getCurrentPosition() + (verticalMotor->getMovementDirection() * verticalMotor->stepsToStop()));
+    int8_t movementDir = verticalMotor->getMovementDirection();
+    if(verticalMotor->isRunning() && !verticalMotor->isStopping()){
+        if (VStopPos <= (MaxDegreesDown) * VStepsPerDegree && movementDir == (-1)) {
+            verticalMotor->stopMove();
+            Serial.println("Stopped at max down");
+        } else if (VStopPos >= (MaxDegreesUp) * VStepsPerDegree && movementDir == 1) {
+            verticalMotor->stopMove();
+            Serial.println("Stopped at max up");
+        }
+    }
+}
 
 void setup() {
     Serial.begin(115200);
@@ -127,10 +169,14 @@ void setup() {
   
     horizontalMotor->init(HSpeed, HAccel, HDirPin); 
     verticalMotor->init(VSpeed, VAccel, VDirPin);
+
+    VStepsPerDegree = verticalMotor->getStepsPerDegree();
 }
 
 
 void loop() {
+    checkMovementConstraints();
+
 	if (Serial.available() > 0) {
         String serialInput = Serial.readStringUntil('\n');
 	
@@ -155,21 +201,26 @@ void loop() {
         String act = message[ACTION_IDX];
         if (act.equals("move")) {
             float angle = message[ANGLE_IDX].toFloat();
+            float VPosDeg = verticalMotor->getCurrentPosition() / VStepsPerDegree;
+
             if (isNumber(message[ACCEL_IDX]) && isNumber(message[ANGLE_IDX])) {
                 float accel = message[ACCEL_IDX].toFloat();
-                float accelHor = cos(angle * PI/180) * accel;
-                float accelVer = sin(angle * PI/180) * accel;
-                
-                horizontalMotor->moveByAcceleration(accelHor);
-                verticalMotor->moveByAcceleration(accelVer);
+                int32_t accelHor = cos(angle * PI/180) * accel;
+                int32_t accelVer = sin(angle * PI/180) * accel;
 
+                bool VCanMove = (!(accelVer < 0 && VPosDeg <= (MaxDegreesDown)) && !(accelVer > 0 && VPosDeg >= (MaxDegreesUp))); 
+
+                horizontalMotor->moveByAcceleration(accelHor);
+
+                if(VCanMove) verticalMotor->moveByAcceleration(accelVer);   
+                else else Serial.println("Change vert. movement direction");
+                
                 Serial.print("Moving the camera, angle: ");
                 Serial.print(angle);
                 Serial.print(" accel: ");
                 Serial.println(accel);
             } else {
                 String dir = message[DIRECTION_IDX];
-            
                         
                 if ((dir.equals("right") || dir.equals("left"))) {
                     angle *= (dir.equals("right") ? 1 : (-1));
@@ -178,9 +229,10 @@ void loop() {
                     Serial.print("Moving hor: ");
                     Serial.println(angle);
                 } else if ((dir.equals("up") || dir.equals("down"))) {
-                    angle *= (dir.equals("down") ? 1 : (-1));
-                    verticalMotor->moveRelative(angle);
-                    
+                    angle *= (dir.equals("up") ? 1 : (-1));
+                    bool canMove = (!(angle < 0 && VPosDeg <= (MaxDegreesDown)) && !(angle > 0 && VPosDeg >= (MaxDegreesUp)));
+                    if (canMove) verticalMotor->moveRelative(angle);
+                    else Serial.println("Change movement direction");
                     Serial.print("Moving ver: ");
                     Serial.println(angle);
                 }
@@ -205,6 +257,5 @@ void loop() {
         }
     }
 
-    delay(2000); // Temporary 
     message[ACTION_IDX] = "";
 }
