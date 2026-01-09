@@ -3,31 +3,24 @@
 #define FULL_SPIN_DEG 360
 
 // Horizontal motor
-#define HDirPin 12
-#define HPulPin 13
-#define HSpeed 20000.0       // steps / s
-#define HAccel 10000.0        // steps / s^2
+#define HDirPin 10
+#define HPulPin 11
+#define HSpeed 5000.0       // steps / s
+#define HAccel 1000.0        // steps / s^2
 #define HStepsPerSpin 6400
 
 // Vertical motor
-#define VDirPin 10
-#define VPulPin 11
-#define VSpeed 1000.0
+#define VDirPin 12
+#define VPulPin 13
+#define VSpeed 5000.0
 #define VAccel 1000.0
 #define VStepsPerSpin 6400
 #define MaxDegreesDown -20
 #define MaxDegreesUp 80
 
 // Gear ratios calculation
-#define belt_height 6
-
-#define smaller_belt_drive_radius 10.097
-#define horizontal_bigger_belt_drive_radius 21.5   
-#define vertical_bigger_belt_drive_radius 35.748
-
-#define HRatio (horizontal_bigger_belt_drive_radius + belt_height/2) / (smaller_belt_drive_radius + belt_height/2) 
-#define VRatio (vertical_bigger_belt_drive_radius + belt_height/2) / (smaller_belt_drive_radius + belt_height/2) 
-
+#define HRatio 1.39
+#define VRatio 2.15
 
 // Serial input 
 // ex. "move 25.3 right",
@@ -58,7 +51,7 @@ class StepperHandler {
 
     void init(float speed, float acceleration, uint8_t dirPin) {
         if(stepper) {
-            stepper->setDirectionPin(dirPin);
+            stepper->setDirectionPin(dirPin, false);
             stepper->setSpeedInHz(speed);               // Max ~200kHz, steps/second
             stepper->setAcceleration(acceleration);
 
@@ -66,8 +59,8 @@ class StepperHandler {
         }
     }
 
-    void moveRelative(float degrees) {
-        stepper->move((long)(degrees * stepsPerDegree));
+    void moveRelative(float degrees, bool blocking=false) {
+        stepper->move((long)(degrees * stepsPerDegree), blocking);
     }
 
     void moveToAngle(float degrees) {
@@ -109,6 +102,10 @@ class StepperHandler {
 
     bool isStopping(){
         return stepper->isStopping();
+    }
+
+    void setCurrentPosition(int32_t newPos){
+        stepper->setCurrentPosition(newPos);
     }
 };
 
@@ -205,7 +202,7 @@ void loop() {
 
             if (isNumber(message[ACCEL_IDX]) && isNumber(message[ANGLE_IDX])) {
                 float accel = message[ACCEL_IDX].toFloat();
-                int32_t accelHor = cos(angle * PI/180) * accel;
+                int32_t accelHor = cos(angle * PI/180) * accel * (-1);
                 int32_t accelVer = sin(angle * PI/180) * accel;
 
                 bool VCanMove = (!(accelVer < 0 && VPosDeg <= (MaxDegreesDown)) && !(accelVer > 0 && VPosDeg >= (MaxDegreesUp))); 
@@ -213,7 +210,7 @@ void loop() {
                 horizontalMotor->moveByAcceleration(accelHor);
 
                 if(VCanMove) verticalMotor->moveByAcceleration(accelVer);   
-                else else Serial.println("Change vert. movement direction");
+                else Serial.println("Change vert. movement direction");
                 
                 Serial.print("Moving the camera, angle: ");
                 Serial.print(angle);
@@ -223,7 +220,7 @@ void loop() {
                 String dir = message[DIRECTION_IDX];
                         
                 if ((dir.equals("right") || dir.equals("left"))) {
-                    angle *= (dir.equals("right") ? 1 : (-1));
+                    angle *= (dir.equals("left") ? 1 : (-1));
                     horizontalMotor->moveRelative(angle);
                     
                     Serial.print("Moving hor: ");
@@ -253,7 +250,52 @@ void loop() {
             }
         } else if (act.equals("showcase")) {
             // For showcase of full range of motion
+            horizontalMotor->moveRelative(FULL_SPIN_DEG, true);
+            horizontalMotor->moveRelative(-FULL_SPIN_DEG, true);
+            verticalMotor->moveRelative(FULL_SPIN_DEG);
+            while(verticalMotor->isRunning()) {
+                checkMovementConstraints();
+                delay(50);
+            }
+            verticalMotor->moveRelative(-FULL_SPIN_DEG);
+            while(verticalMotor->isRunning()) {
+                checkMovementConstraints();
+                delay(50);
+            }
+
+            horizontalMotor->moveRelative(-15);
+            verticalMotor->moveRelative(180.0);
+            while(verticalMotor->isRunning()) {
+                checkMovementConstraints();
+                delay(50);
+            }
+            horizontalMotor->moveRelative(30);
+            verticalMotor->moveRelative(-180.0);
+            while(verticalMotor->isRunning()) {
+                checkMovementConstraints();
+                delay(50);
+            }
+
+            horizontalMotor->moveRelative(-180);
+            verticalMotor->moveRelative(45);
+            while(verticalMotor->isRunning()) {
+                checkMovementConstraints();
+                delay(50);
+            }
+            verticalMotor->moveRelative(-60);
+            while(verticalMotor->isRunning()) {
+                checkMovementConstraints();
+                delay(50);
+            }
+            horizontalMotor->moveRelative(90, true);
+            horizontalMotor->stopMove();
+            verticalMotor->stopMove();
+            
+
             Serial.println("Showcase not implemented yet");
+        } else if (act.equals("reset_pos")){
+            verticalMotor->setCurrentPosition(0);
+            horizontalMotor->setCurrentPosition(0);  
         }
     }
 
