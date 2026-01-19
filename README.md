@@ -1,67 +1,88 @@
 # SOWA
+[![Python](https://img.shields.io/badge/python-3.13-3776ab?logo=python&logoColor=white)](https://www.python.org/)
+[![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-007ec6?logo=ultralytics&logoColor=white)](https://docs.ultralytics.com/)
+[![OpenCV](https://img.shields.io/badge/OpenCV-4.11.0-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
+[![Jetson](https://img.shields.io/badge/Hardware-Nvidia%20Jetson-76B900?logo=nvidia&logoColor=white)](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/)
+[![Arduino](https://img.shields.io/badge/Hardware-Arduino_Uno-00979d?logo=arduino&logoColor=white)](https://www.arduino.cc/)
+[![ESP32](https://img.shields.io/badge/Hardware-ESP32-e7352c?logo=espressif&logoColor=white)](https://www.espressif.com/en/products/socs/esp32)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
+
+## Table of Contents
+* [Project Status](#project-status)
+* [Multimedia Gallery](#multimedia-gallery)
+* [Modules Overview](#modules-overview)
+    * [Detection Module](#detection-module-detection)
+    * [Rotation Mechanism](#rotation-mechanism-driver)
+* [Team](#team)
+* [License](#license)
+
+---
 
 ## Project Status
 **Current Stage:** Under active development.
 
 The system currently consists of two functional core components:
 * **Detection Module:** A computer vision system based on YOLO for autonomous object recognition. The module is currently tested on PC but will be deployed to Nvidia Jetson.
-* **Rotation Mechanism:** A custom-designed, 3D-printed hardware controller for precise 2-axis positioning.
-
----
-
-## Tech Stack
-
-### Detection Module
-![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![Ultralytics](https://img.shields.io/badge/ultralytics-%23111F68.svg?style=for-the-badge&logo=ultralytics&logoColor=white)
-![OpenCV](https://img.shields.io/badge/opencv-%23white.svg?style=for-the-badge&logo=opencv&logoColor=white)
-
-### Rotation Mechanism
-![Arduino](https://img.shields.io/badge/-Arduino-00979D?style=for-the-badge&logo=Arduino&logoColor=white)
-![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
+* **Rotation Mechanism:** A custom-designed, 3D-printed hardware controller for precise 2-axis positioning able to hold camera and antenna.
 
 ---
 
 ## Multimedia Gallery
-Below are the visual materials showcasing the SOWA system.
+<details open>
+  <summary>Gallery</summary>
 
-### Detection Module
+  ### Detection Module
+  ![detection](https://drive.google.com/uc?export=view&id=1YoXf2ZV2ZGZMKBD5Lw5D1eoEN8Btz77M)
 
-![detection](https://drive.google.com/uc?export=view&id=1YoXf2ZV2ZGZMKBD5Lw5D1eoEN8Btz77M)
----
+  ---
 
-### Rotation Mechanism
-![mechanism](https://drive.google.com/uc?export=view&id=1cAZD1GclJ1NSZbfLoPzHjMn5gEtWo8uk)
-![mechanism_scheme](https://drive.google.com/uc?export=view&id=1-eY8NJg5deBWDQLhOuHweFCVcFPKO_1F)
-![mechanism_driver](https://drive.google.com/uc?export=view&id=12MBB_JnVovjM_gP1cwSug3CR4oAvuw1S)
+  ### Rotation Mechanism
+  ![mechanism](https://drive.google.com/uc?export=view&id=1cAZD1GclJ1NSZbfLoPzHjMn5gEtWo8uk)
+  ![mechanism_scheme](https://drive.google.com/uc?export=view&id=1-eY8NJg5deBWDQLhOuHweFCVcFPKO_1F)
+  ![mechanism_driver](https://drive.google.com/uc?export=view&id=12MBB_JnVovjM_gP1cwSug3CR4oAvuw1S)
+
+</details>
 
 ---
 
 ## Modules Overview
-### Detection Module (/detection)
-The vision layer is a processing pipeline designed for real-time object recognition and spatial analysis.
 
-* The system utilizes the Ultralytics YOLO framework.
-* A tiled inference mechanism is implemented to process high-resolution images in overlapping 640-pixel segments, which enables the effective detection of small objects without losing detail.
-* Support for multiple input data sources includes RTSP streams handled by a multi-threaded camera implementation to minimize latency, as well as batch processing of image folders and video files.
-* The visualization system overlays bounding boxes, class labels, and detection confidence scores on the image, while providing an FPS counter and diagnostic tools for debugging inference coverage.
-* The module automatically measures inference and frame capture times, allowing for the generation of performance plots for different computing units such as GPU or CPU.
+### Detection Module (/detection)
+<details open>
+  <summary>Technical Details</summary>
+
+  * The module utilizes the Ultralytics YOLO framework for object detection. In production environment it will obtain data from 4K camera.
+  * A tiled inference mechanism processes high-resolution images in overlapping segments to detect small objects without detail loss.
+  * Native support for RTSP streams is handled by a multi-threaded camera implementation to minimize latency.
+  * It supports batch processing of image folders and various video file formats.
+  * The visualization system overlays bounding boxes, class labels, and confidence scores, providing real-time diagnostic tools like an FPS counter.
+  * Performance is tracked by measuring inference and frame capture times for hardware benchmarking.
+
+</details>
 
 ### Rotation Mechanism (/driver)
-The control module is responsible for precise mechanical movement and handling communication with the master system.
+The control module is responsible for precise mechanical movement and master system communication.
 
-* The entire mechanical structure was designed and 3D printed by the team.
-* The chassis and frame were customized to securely hold and direct the camera and antenna assembly.
-* The logical layer is based on a microcontroller with software written in C++ using the FastAccelStepper library, allowing for smooth control of stepper motors.
-* The mechanism implements movement in two axes while accounting for mechanical gear ratios of 1.39 for the horizontal axis and 2.15 for the vertical axis.
-* Hardware integrity is ensured by software-defined movement range limits for the vertical axis, set between -20 and 80 degrees.
+<details open>
+  <summary>Technical Details</summary>
+
+  * The entire mechanical structure was designed and 3D printed by the team.
+  * The chassis is customized to hold the integrated camera and antenna assembly.
+  * The software is written in C++ using the FastAccelStepper library for smooth motor control.
+  * The module supports universal adjustment of mechanical gear ratios to accommodate different hardware transmissions.
+  * Software-defined movement limits are fully configurable to protect hardware integrity across different physical setups.
+
+</details>
 
 ---
 
 ## Team
 * **Oskar Wiśniewski (oskarw7)**
-* **Mikołaj Wiszniewski ()**
-* **Michał Wojciechowski ()**
-* **Franciszek Fabiński ()**
+* **Mikołaj Wiszniewski (Weeshsh)**
+* **Michał Wojciechowski (Kertzy86)**
+* **Franciszek Fabiński (fist-it)**
 
 ---
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
