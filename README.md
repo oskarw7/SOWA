@@ -54,6 +54,8 @@ The system currently consists of two functional core components:
 ## Modules Description
 
 ### Detection Module (/detection)
+The vision layer is a processing pipeline designed for real-time object recognition and spatial analysis.
+
 <details open>
   <summary>Technical Details</summary>
 
