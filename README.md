@@ -1,6 +1,6 @@
 # SOWA
 [![Python](https://img.shields.io/badge/python-3.13-3776ab?logo=python&logoColor=white)](https://www.python.org/)
-[![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-007ec6?logo=ultralytics&logoColor=white)](https://docs.ultralytics.com/)
+[![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-082e79?logo=ultralytics&logoColor=white)](https://docs.ultralytics.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.11.0-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![Jetson](https://img.shields.io/badge/Hardware-Nvidia%20Jetson-76B900?logo=nvidia&logoColor=white)](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/)
 [![Arduino](https://img.shields.io/badge/Hardware-Arduino_Uno-00979d?logo=arduino&logoColor=white)](https://www.arduino.cc/)
@@ -8,13 +8,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
+* [Project Overview](#project-overview)
 * [Project Status](#project-status)
 * [Multimedia Gallery](#multimedia-gallery)
-* [Modules Overview](#modules-overview)
+* [Modules Description](#modules-description)
     * [Detection Module](#detection-module-detection)
     * [Rotation Mechanism](#rotation-mechanism-driver)
 * [Team](#team)
 * [License](#license)
+
+---
+
+## Project Overview
+The project aims to develop a high-precision tracking system for maintaining a stable communication link with autonomous vehicles. By combining GPS data for approximate localization and AI-powered computer vision for precise visual tracking, SOWA ensures a directional antenna is always pointed accurately at its target. The system is specifically engineered for outdoor fieldwork. Its robust 3D-printed construction and edge computing allow it to maintain signal links in remote areas where traditional infrastructure is unavailable.
 
 ---
 
@@ -45,7 +51,7 @@ The system currently consists of two functional core components:
 
 ---
 
-## Modules Overview
+## Modules Description
 
 ### Detection Module (/detection)
 <details open>
