@@ -1,0 +1,5 @@
+run model_name="yolo26s.engine":
+  uv run python main.py --model {{model_name}} --source ./nagrania/drone1_mov1.mov --device cuda
+
+compile model_name="yolo26s.pt":
+  uv run yolo export model={{model_name}} format=engine half=True
