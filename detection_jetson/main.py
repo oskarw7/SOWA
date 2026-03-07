@@ -134,7 +134,8 @@ while True:
 
     inferenceStartTime = time.perf_counter()
 
-    results = detector.detectTiled(frame, tileSize=640, overlap=0.1)
+    #results = detector.detectTiled(frame, tileSize=640, overlap=0.1)
+    results = detector.detect(frame)
 
     endTime = time.perf_counter()
     times.append(endTime - inferenceStartTime)
@@ -146,10 +147,10 @@ while True:
     print(f'Frame capture and inference time: {(endTime - startTime)*1000} ms')
 
     vizualizer.draw(frame, results)
-    vizualizer.drawGrid(
-            frame,
-            tileSize=640,
-            overlap=0.0)
+    # vizualizer.drawGrid(
+            # frame,
+            # tileSize=640,
+            # overlap=0.0)
     if not HEADLESS:
         if sourceType == 'video' or sourceType == 'camera':
             vizualizer.showFps(frame, fpsMA)

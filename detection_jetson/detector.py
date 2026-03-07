@@ -77,7 +77,7 @@ class Detector:
             list[Detection]: A list of Detection objects found in the frame.
         """
         # Pass the device to the model
-        return self._processResults(self.model(frame, device=self.device, verbose=False, classes=self.classes)[0], frame.shape, offset=(0, 0))
+        return self._processResults(self.model(frame, device=self.device, verbose=False, half=True, classes=self.classes)[0], frame.shape, offset=(0, 0))
 
     def detectTiled(self, frame: np.ndarray, tileSize: int = 640, overlap: float = 0.25) -> list[Detection]:
         """
@@ -108,7 +108,7 @@ class Detector:
                 crop = frame[startY:startY + tileSize, startX:startX + tileSize]
 
                 # Pass the device to the model
-                results = self.model(crop, device=self.device, verbose=False, classes=self.classes, imgsz=tileSize)
+                results = self.model(crop, device=self.device, verbose=False, half=True, classes=self.classes, imgsz=tileSize)
 
                 tileDetections = self._processResults(results[0], frame.shape, offset=(startX, startY))
                 allDetections.extend(tileDetections)
@@ -117,6 +117,55 @@ class Detector:
                     break
             if startY + tileSize >= imgH:
                 break
+
+        return self._applyNms(allDetections)
+
+    def detectTiledBatch(self, frame: np.ndarray, tileSize: int = 640, overlap: float = 0.25) -> list[Detection]:
+        imgH, imgW = frame.shape[:2]
+        step = int(tileSize * (1 - overlap))
+
+        allDetections = []
+        crops = []
+        offsets = []
+
+        for y in range(0, imgH, step):
+            for x in range(0, imgW, step):
+                startX = min(x, imgW - tileSize)
+                startY = min(y, imgH - tileSize)
+
+                startX = max(0, startX)
+                startY = max(0, startY)
+
+                crop = frame[startY:startY + tileSize, startX:startX + tileSize]
+                
+                crops.append(crop)
+                offsets.append((startX, startY))
+
+                if startX + tileSize >= imgW:
+                    break
+            if startY + tileSize >= imgH:
+                break
+
+        MAX_BATCH_SIZE = 8
+
+        if crops:
+            for i in range(0, len(crops), MAX_BATCH_SIZE):
+                batchCrops = crops[i:i + MAX_BATCH_SIZE]
+                batchOffsets = offsets[i:i + MAX_BATCH_SIZE]
+
+                results = self.model(
+                    batchCrops, 
+                    device=self.device, 
+                    verbose=False, 
+                    half=True,
+                    classes=self.classes, 
+                    imgsz=tileSize, 
+                    stream=True
+                )
+
+                for result, offset in zip(results, batchOffsets):
+                    tileDetections = self._processResults(result, frame.shape, offset=offset)
+                    allDetections.extend(tileDetections)
 
         return self._applyNms(allDetections)
 

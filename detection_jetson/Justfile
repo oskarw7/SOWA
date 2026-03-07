@@ -1,5 +1,5 @@
 run model_name="yolo26s.engine":
-  uv run python main.py --model {{model_name}} --source ./nagrania/drone1_mov1.mov --device cuda
+  uv run python main.py --model {{model_name}} --source ./inference_input/drone1_mov5.mov --device cuda
 
 compile model_name="yolo26s.pt":
-  uv run yolo export model={{model_name}} format=engine half=True
+  uv run yolo export model={{model_name}} format=engine half=True dynamic=True batch=8
