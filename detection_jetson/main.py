@@ -134,8 +134,9 @@ while True:
 
     inferenceStartTime = time.perf_counter()
 
-    #results = detector.detectTiled(frame, tileSize=640, overlap=0.1)
-    results = detector.detect(frame)
+    # results = detector.detectTiledBatch(frame, tileSize=640, overlap=0.1)
+    results = detector.detectBatch(frame)
+
 
     endTime = time.perf_counter()
     times.append(endTime - inferenceStartTime)

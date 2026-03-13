@@ -3,3 +3,9 @@ run model_name="yolo26s.engine":
 
 compile model_name="yolo26s.pt":
   uv run yolo export model={{model_name}} format=engine half=True dynamic=True batch=8
+
+compile_all:
+  uv run python compile_models.py
+
+run_all:
+  uv run python test_models.py

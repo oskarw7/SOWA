@@ -29,7 +29,10 @@ saved_*/
 Ultralytics/
 data/
 inference_input/
+benchmark_results/
+converted_models/
 
-*.pt
-*.onnx
-*.engine
+**.pt
+**.onnx
+**.engine
+

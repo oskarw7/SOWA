@@ -14,3 +14,7 @@
 ### Compile model to TensorRT
 
 ### Compile model with FP16 weights
+
+### Adjust video encoding/decoding (Gstream)
+
+### DeepStream (a lot of changes)
