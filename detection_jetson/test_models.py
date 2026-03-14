@@ -36,10 +36,12 @@ def runVideoBenchmark():
         modelPath = os.path.join(modelsDir, modelFile)
         cap = cv2.VideoCapture(videoSource)
         
+        # Parsing, format: modelId_precision_dynamic_batch_imgsz_simplify.extPart
         filenameNoExt = os.path.splitext(modelFile)[0]
         parts = filenameNoExt.split('_')
         
         try:
+            precision = parts[-5]
             isDynamic = parts[-4] == 'True'
             batchSize = int(parts[-3])
             modelImgSz = int(parts[-2])
@@ -48,33 +50,36 @@ def runVideoBenchmark():
             batchSize = 1
             modelImgSz = 640
 
-        detector = Detector(modelPath=modelPath, confidenceThreshold=0.25)
+        detector = Detector(
+            modelPath=modelPath, 
+            confidenceThreshold=0.5,
+            tileSize=modelImgSz,
+            batchSize=batchSize,
+            precision=precision,
+            overlap=0.1
+        )
         
         latencies = []
         frameCount = 0
-        funcName = ""
         
         print(f"\n\nTesting: {modelFile}\n")
         
         if not isDynamic and batchSize == 1:
             inferenceFunc = detector.detect
-            funcArgs = {}
             funcName = "detect"
-            print("\nUsing detect\n")
         elif isDynamic and batchSize > 1:
             inferenceFunc = detector.detectTiledBatch
-            funcArgs = {'tileSize': modelImgSz}
             funcName = "detectTiledBatch"
-            print(f"\nUsing: detectTiledBatch (batch={batchSize}, imgsz={modelImgSz})\n")
         else:
             inferenceFunc = detector.detectTiled
-            funcArgs = {'tileSize': modelImgSz}
             funcName = "detectTiled"
-            print(f"Using: detectTiled (batch=1, imgsz={modelImgSz})")
+            
+        print(f"Using: {funcName} (batch={batchSize}, imgsz={modelImgSz})")
         
+        # Warm-up
         ret, frame = cap.read()
         if ret:
-            inferenceFunc(frame, **funcArgs)
+            inferenceFunc(frame) 
 
         while frameCount < maxFrames:
             ret, frame = cap.read()
@@ -82,7 +87,7 @@ def runVideoBenchmark():
                 break
                 
             startTime = time.perf_counter()
-            inferenceFunc(frame, **funcArgs)
+            inferenceFunc(frame) 
             endTime = time.perf_counter()
             
             latencies.append((endTime - startTime) * 1000)

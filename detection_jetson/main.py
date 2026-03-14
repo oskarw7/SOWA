@@ -18,8 +18,10 @@ parser.add_argument('--model', help='Path to YOLO model file (example: "runs/det
 parser.add_argument('--source', help='Image source, can be image file ("test.jpg"), \
                     image folder ("test_dir"), video file ("testvid.mp4") or camera ("camera")',
                     required=True)
-parser.add_argument('--thresh', help='Minimum confidence threshold for displaying detected objects (example: "0.4")',
+parser.add_argument('--conf', help='Minimum confidence threshold for displaying detected objects (example: "0.4")',
                     default=0.5)
+parser.add_argument('--overlap', help='Defines how much should tiles interfere in tiled detection (example: "0.1")',
+                    default=0.1)
 parser.add_argument('--resolution', help='Resolution in WxH to display inference results at (example: "640x480"), \
                     otherwise, match source resolution',
                     default=None)
@@ -30,7 +32,8 @@ args = parser.parse_args()
 
 MODEL_PATH = args.model
 SOURCE = args.source
-CONFIDENCE_THRESHOLD = args.thresh
+CONFIDENCE_THRESHOLD = args.conf
+OVERLAP = args.overlap
 RESOLUTION = args.resolution
 RECORD_FLAG = args.record
 DEVICE = args.device
@@ -93,11 +96,11 @@ if not HEADLESS:
     cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(windowName, 1920, 1080)
 
-detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD, device=DEVICE)
+detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD, overlap=OVERLAP, device=DEVICE)
 vizualizer = Vizualizer()
 
 prev_frame_id = -1
-fpsMA = 0.0  # Moving Average zeby wygladzic
+fpsMA = 0.0  # Moving Average
 fpsMABuffer = []
 fpsMAThreshold = 30
 imageCount = 0
@@ -134,8 +137,8 @@ while True:
 
     inferenceStartTime = time.perf_counter()
 
-    # results = detector.detectTiledBatch(frame, tileSize=640, overlap=0.1)
-    results = detector.detectBatch(frame)
+    # results = detector.detectTiledBatch(frame)
+    results = detector.detect(frame)
 
 
     endTime = time.perf_counter()
