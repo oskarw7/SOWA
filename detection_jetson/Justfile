@@ -2,7 +2,7 @@ run model_name="yolo26s.engine":
   uv run python main.py --model {{model_name}} --source ./inference_input/drone1_mov5.mov --device cuda
 
 compile model_name="yolo26s.pt":
-  uv run yolo export model={{model_name}} format=engine half=True dynamic=True batch=8
+  uv run yolo export model={{model_name}} format=engine device=0 half=True dynamic=True batch=8 imgsz=640 simplify=True
 
 compile_all:
   uv run python compile_models.py

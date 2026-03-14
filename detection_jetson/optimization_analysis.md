@@ -47,10 +47,6 @@ yolo11s | imgsz=640 | batch=8 | dynamic=True
 yolo11s | imgsz=960 | batch=4 | dynamic=True
     Rationale: Maximum standard precision. The batch size is reduced to 4 to prevent VRAM Out-Of-Memory (OOM) exceptions on the Jetson device while processing high-resolution tiles.
 
-### Domain-Specific & Specialized Architectures
-yolov8s-p2 | imgsz=640 | batch=4 | dynamic=True
-    Rationale: Micro-object architecture test. Utilizes the P2 (Stride 4) high-resolution detection head. Batch size is strictly constrained to 4 due to the significantly higher memory footprint of the P2 layer.
-
 ### Full-Frame Downscaling (Fallback)
 yolo11n | imgsz=1536 | batch=1 | dynamic=False
     Rationale: High-resolution full-frame inference. Compresses the native 4K input directly to 1536x1536. This is expected to yield maximum FPS at the potential cost of completely losing distant drone features due to pixel interpolation.

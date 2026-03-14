@@ -16,8 +16,6 @@ compilationPlan = [
     {'model': 'yolo26s.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': True, 'batch': 8, 'imgsz': 640, 'simplify': True},
     {'model': 'yolo26s.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': True, 'batch': 4, 'imgsz': 960, 'simplify': True},
 
-    {'model': 'yolov8s-p2.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': True, 'batch': 4, 'imgsz': 640, 'simplify': True},
-
     {'model': 'yolo11n.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 1536, 'simplify': True},
     {'model': 'yolo11n.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 960, 'simplify': True},
     {'model': 'yolo11n.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 640, 'simplify': True},
@@ -32,9 +30,7 @@ compilationPlan = [
 
     {'model': 'yolo26s.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 1536, 'simplify': True},
     {'model': 'yolo26s.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 960, 'simplify': True},
-    {'model': 'yolo26s.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 640, 'simplify': True},
-
-    {'model': 'yolov8s-p2.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 640, 'simplify': True}
+    {'model': 'yolo26s.pt', 'format': 'engine', 'device': 0, 'half': True, 'int8': False, 'dynamic': False, 'batch': 1, 'imgsz': 640, 'simplify': True}
 ]
 
 # save format:
