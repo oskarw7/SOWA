@@ -20,8 +20,10 @@ parser.add_argument('--source', help='Image source, can be image file ("test.jpg
                     required=True)
 parser.add_argument('--conf', help='Minimum confidence threshold for displaying detected objects (example: "0.4")',
                     default=0.5)
-parser.add_argument('--overlap', help='Defines how much should tiles interfere in tiled detection (example: "0.1")',
+parser.add_argument('--overlap', help='Defines how much tiles should interfere in tiled detection (example: "0.1")',
                     default=0.1)
+parser.add_argument('--tile', help='Defines size of inference tile (example: "640")',
+                    default=640)
 parser.add_argument('--resolution', help='Resolution in WxH to display inference results at (example: "640x480"), \
                     otherwise, match source resolution',
                     default=None)
@@ -34,6 +36,7 @@ MODEL_PATH = args.model
 SOURCE = args.source
 CONFIDENCE_THRESHOLD = args.conf
 OVERLAP = args.overlap
+TILE_SIZE = args.tile
 RESOLUTION = args.resolution
 RECORD_FLAG = args.record
 DEVICE = args.device
@@ -96,7 +99,7 @@ if not HEADLESS:
     cv2.namedWindow(windowName, cv2.WINDOW_NORMAL)
     cv2.resizeWindow(windowName, 1920, 1080)
 
-detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD, overlap=OVERLAP, device=DEVICE)
+detector = Detector(MODEL_PATH, CONFIDENCE_THRESHOLD, overlap=OVERLAP, device=DEVICE, tileSize=TILE_SIZE)
 vizualizer = Vizualizer()
 
 prev_frame_id = -1
