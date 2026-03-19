@@ -1,11 +1,31 @@
-run model_name="yolo26s.engine":
-  uv run python main.py --model {{model_name}} --source ./inference_input/drone1_mov5.mov --device cuda
+run_py model_name="yolo26s.engine":
+  uv run python test.py --model {{model_name}} --source ./inference_input/drone1_mov5.mov --device cuda
 
-compile model_name="yolo26s.pt":
+run_py_all:
+  uv run python benchmark.py
+
+compile_model model_name="yolo26s.pt":
   uv run yolo export model={{model_name}} format=engine device=0 half=True dynamic=True batch=8 imgsz=640 simplify=True
 
-compile_all:
+compile_model_all:
   uv run python compile_models.py
 
-run_all:
-  uv run python test_models.py
+[working-directory: "DeepStream-Yolo"]
+run:
+  g++ -o main main.cpp `pkg-config --cflags --libs gstreamer-1.0` \
+    -I/opt/nvidia/deepstream/deepstream/sources/includes \
+    -L/opt/nvidia/deepstream/deepstream/lib \
+    -lnvdsgst_meta -lnvds_meta \
+    -Wl,-rpath,/opt/nvidia/deepstream/deepstream/lib
+  -./main config_infer_main.txt
+  rm main
+
+[working-directory: "DeepStream-Yolo"]
+test:
+  g++ -o test test.cpp `pkg-config --cflags --libs gstreamer-1.0` \
+    -I/opt/nvidia/deepstream/deepstream/sources/includes \
+    -L/opt/nvidia/deepstream/deepstream/lib \
+    -lnvdsgst_meta -lnvds_meta \
+    -Wl,-rpath,/opt/nvidia/deepstream/deepstream/lib
+  -./test config_infer_main.txt file:///home/sowa/SOWA/detection_jetson/inference_input/drone1_mov5.mov
+  rm test

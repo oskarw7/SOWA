@@ -55,7 +55,12 @@ class Detector:
         Args:
             modelPath (str): File path to the .pt YOLO model.
             confidenceThreshold (float): Minimum confidence (0-1) to accept detection.
+            iouThreshold (float, optional): Intersection over Union threshold for NMS. Defaults to 0.45.
+            overlap (float, optional): Overlap ratio between tiles (if using SAHI/tiling). Defaults to 0.1.
+            tileSize (int, optional): Size of the image tiles for inference. Defaults to 640.
+            batchSize (int, optional): Number of images/tiles processed per batch. Defaults to 8.
             device (str, optional): Computation device ('0', 'cpu', 'mps'). Defaults to '0'.
+            precision (str, optional): Model precision ('fp16' or 'fp32'). Defaults to 'fp16'.
             classes (list[int], optional): List of class IDs to detect. If None, defaults to [4, 8] (airplanes and boats).
         """
         self.model = YOLO(modelPath, task='detect')
@@ -101,7 +106,6 @@ class Detector:
 
         Args:
             frame (np.ndarray): Input high-resolution image.
-            overlap (float, optional): Overlap ratio between tiles (0.0 to 1.0). Defaults to 0.25.
 
         Returns:
             list[Detection]: Consolidated list of unique detections after NMS.
@@ -143,6 +147,16 @@ class Detector:
         return self._applyNms(allDetections)
 
     def detectTiledBatch(self, frame: np.ndarray) -> list[Detection]:
+        """
+        Splits image into tiles, detects objects, and merges results using NMS.
+        Additionally packes tiles into batches and sends them to a device.
+
+        Args:
+            frame (np.ndarray): Input high-resolution image.
+
+        Returns:
+            list[Detection]: Consolidated list of unique detections after NMS.
+        """
         imgH, imgW = frame.shape[:2]
         step = int(self.tileSize * (1 - self.overlap))
 
