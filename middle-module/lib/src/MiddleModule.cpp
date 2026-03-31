@@ -54,9 +54,16 @@ void MiddleModule::test_path() const {
 
   for (auto p : coordinates) {
     point_xy<int> target(p.x() - prev.x(), p.y() - prev.y());
+    string h_str("move " + lexical_cast<string>(target.x() * h_scaling) + " right");
+    string v_str("move " + lexical_cast<string>(target.y() * v_scaling) + " up");
 
-    cout << "move " + lexical_cast<string>(target.x() * h_scaling) + " right" << endl;
-    cout << "move " + lexical_cast<string>(target.y() * v_scaling) + " up" << endl;
+    cout << h_str << endl;
+    cout << v_str << endl;
+
+    if (serial != NULL) {
+      serial->write(h_str);
+      serial->write(v_str); 
+    }
 
     prev = p;
 

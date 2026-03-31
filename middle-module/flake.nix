@@ -29,7 +29,6 @@
 							cmake
 							clang-tools
 							boost
-              ninja
             ];
 
             shellHook = ''
