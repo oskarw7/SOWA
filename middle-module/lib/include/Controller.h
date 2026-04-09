@@ -4,14 +4,18 @@
 #pragma once
 
 #include "Serial.h"
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry.hpp>
 
-class MiddleModule {
+using boost::geometry::model::d2::point_xy;
+
+class Controller {
  private:
-  Serial* serial;
+  Serial serial;
+  point_xy<int> previous_point;
 
  public:
-  explicit MiddleModule(Serial* serial);
-  MiddleModule();
+  Controller();
 
-  void test_path() const;
+  void new_move(int x, int y);
 };

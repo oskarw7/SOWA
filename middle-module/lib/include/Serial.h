@@ -5,6 +5,7 @@
 
 #include <string>
 #include <boost/asio.hpp>
+#include "Helpers.h"
 
 using std::string;
 
@@ -15,8 +16,11 @@ class Serial {
 
  public:
   Serial(string portName, unsigned int baudRate);
+  ~Serial();
 
-  void write(string s);
-  void read();
+  void send(packet p);
+  void send(string s);
+  
+  void receive(packet* p);
   string readUntil(char c);
 };

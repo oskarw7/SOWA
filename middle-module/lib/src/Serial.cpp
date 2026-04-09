@@ -5,10 +5,12 @@
 #include <iostream>
 #include <boost/asio.hpp>
 #include "Serial.h"
+#include "Helpers.h"
 
 namespace ba = boost::asio;
 using std::string;
 using std::cout;
+using std::endl;
 
 Serial::Serial(string portName, unsigned int baudRate)
   : io()
@@ -17,19 +19,26 @@ Serial::Serial(string portName, unsigned int baudRate)
   this->port.set_option(ba::serial_port_base::character_size(8));
 
   sleep(1);  // wait for init
+
+  cout << "Serial is ready!" << std::endl;
 }
 
-void Serial::write(string s) {
+
+Serial::~Serial() {
+  this->port.close();
+}
+
+void Serial::send(packet p) {
+  this->port.write_some(ba::buffer(&p, sizeof(packet)));
+}
+
+void Serial::send(string s) {
   this->port.write_some(ba::buffer(s.c_str(), s.size()));
-  sleep(0.5);
 }
 
-void Serial::read() {
-  char data[50];
-  this->port.read_some(ba::buffer(data, 50));
-  cout << "I have read this: ";
-  cout.write(data, 50);
-  cout << std::endl;
+void Serial::receive(packet* p) {
+  this->port.read_some(ba::buffer(p, sizeof(packet)));
+  cout << "Received name: " << (direction)(p->name) << endl;
 }
 
 string Serial::readUntil(char c) {

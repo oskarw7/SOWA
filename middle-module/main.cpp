@@ -1,18 +1,16 @@
 // ============================================================================
 // Copyright 2026 SOWA
 // ============================================================================
-#include <vector>
-#include <iostream>
-#include <string>
 #include "Serial.h"
-#include "MiddleModule.h"
-
+#include "Controller.h"
 
 int main() {
-  //Serial serial("test", 9600);
-  //MiddleModule mm(serial);
-  MiddleModule mm;
-  mm.test_path();
+  Controller cc;
+
+  cc.new_move(100, 100);
+  cc.new_move(0, 0);
+  cc.new_move(100, 100);
+  
 
   return 0;
 }
