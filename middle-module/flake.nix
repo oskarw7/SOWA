@@ -30,6 +30,7 @@
 							clang-tools
 							boost
               ninja
+              socat
             ];
 
             shellHook = ''
