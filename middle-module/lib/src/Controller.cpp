@@ -21,6 +21,8 @@
 constexpr float h_scaling = 116.0/1920.0;
 constexpr float v_scaling = 65.0/1080.0;
 
+constexpr double kMoveThreshold = 0.1;
+
 typedef boost::minstd_rand base_generator_type;
 
 using boost::geometry::model::d2::point_xy;
@@ -47,9 +49,13 @@ void calculate_checksum(packet* p) {
 
 void Controller::new_move(int x, int y) {
   point_xy<int> new_point(x, y);
-
   point_xy<int> target_vec(abs(x - this->previous_point.x()),
                       abs(y - this->previous_point.y()));
+
+  if (std::pow(target_vec.x(), 2) +
+      std::pow(target_vec.y(), 2) < kMoveThreshold) {
+    return;
+  }
 
   float target_steps_x = static_cast<float>(target_vec.x() * h_scaling);
   float target_steps_y = static_cast<float>(target_vec.y() * v_scaling);
