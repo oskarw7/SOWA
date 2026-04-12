@@ -28,3 +28,9 @@ enum direction {
     up,
     down
 };
+
+enum stop {
+  hor,
+  vert,
+  both
+}
