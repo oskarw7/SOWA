@@ -21,7 +21,7 @@
 constexpr float h_scaling = 116.0/1920.0;
 constexpr float v_scaling = 65.0/1080.0;
 
-constexpr double kMoveThreshold = 0.1;
+constexpr double kMoveThreshold = 0.05;
 
 typedef boost::minstd_rand base_generator_type;
 
@@ -52,13 +52,13 @@ void Controller::new_move(int x, int y) {
   point_xy<int> target_vec(abs(x - this->previous_point.x()),
                       abs(y - this->previous_point.y()));
 
-  if (std::pow(target_vec.x(), 2) +
-      std::pow(target_vec.y(), 2) < kMoveThreshold) {
-    return;
-  }
-
   float target_steps_x = static_cast<float>(target_vec.x() * h_scaling);
   float target_steps_y = static_cast<float>(target_vec.y() * v_scaling);
+
+  if (std::pow(target_steps_x, 2) +
+      std::pow(target_steps_y, 2) < kMoveThreshold) {
+    return;
+  }
 
   bool h_dir = target_vec.x() > 0;
   bool v_dir = target_vec.y() > 0;
