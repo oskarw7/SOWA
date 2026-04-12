@@ -1,5 +1,5 @@
 {
-  description = "Standard Dev Shell for Arduino and ESP32";
+  description = "SOWA middle module";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -35,6 +35,7 @@
 							boost
               ninja
               socat
+              jq
             ];
 
             shellHook = ''
