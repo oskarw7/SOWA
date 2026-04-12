@@ -6,6 +6,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <memory>
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/lexical_cast.hpp>
@@ -20,21 +21,22 @@
 constexpr float h_scaling = 116.0/1920.0;
 constexpr float v_scaling = 65.0/1080.0;
 
-constexpr unsigned int kBaudRate = 115200;
 typedef boost::minstd_rand base_generator_type;
 
 using boost::geometry::model::d2::point_xy;
 using boost::lexical_cast;
-using boost::bad_lexical_cast;
 using std::string;
 using std::vector;
 using std::endl;
 using std::cout;
 
 
-Controller::Controller()
-  : serial("/dev/ttyUSB0", kBaudRate)
-  , previous_point(0, 0) {}
+Controller::Controller(std::string dev, const unsigned int baudRate)
+  : serial(std::make_unique<Serial>(dev, baudRate))
+  , previous_point(0, 0)
+  , testing_mode(false) {}
+
+Controller::Controller(bool t) : previous_point(0, 0), testing_mode(t) {}
 
 void calculate_checksum(packet* p) {
   p->checksum = p->additional ^ p->header ^ p->name;
@@ -49,26 +51,42 @@ void Controller::new_move(int x, int y) {
   point_xy<int> target_vec(abs(x - this->previous_point.x()),
                       abs(y - this->previous_point.y()));
 
-  packet h_pack {
-    static_cast<float>(target_vec.x() * h_scaling),
-    kHeader,
-    name::move,
-    target_vec.x() > 0 ? direction::right : direction::left
-  };
+  float target_steps_x = static_cast<float>(target_vec.x() * h_scaling);
+  float target_steps_y = static_cast<float>(target_vec.y() * v_scaling);
 
-  packet v_pack {
-    static_cast<float>(target_vec.y() * v_scaling),
-    kHeader,
-    name::move,
-    target_vec.y() > 0 ? direction::up : direction::down
-  };
+  bool h_dir = target_vec.x() > 0;
+  bool v_dir = target_vec.y() > 0;
 
-  calculate_checksum(&h_pack);
-  calculate_checksum(&v_pack);
+  if (!testing_mode) {
+    packet h_pack {
+      target_steps_x,
+      kHeader,
+      name::move,
+      h_dir ? direction::right : direction::left
+    };
 
-  serial.send(h_pack);
-  serial.send(v_pack);
+    packet v_pack {
+      target_steps_y,
+      kHeader,
+      name::move,
+      v_dir ? direction::up : direction::down
+    };
 
+    calculate_checksum(&h_pack);
+    calculate_checksum(&v_pack);
+
+    serial->send(h_pack);
+    serial->send(v_pack);
+  } else {
+    string h_command =
+      string(h_dir ? "right " : "left ") + lexical_cast<string>(target_steps_x);
+
+    string v_command =
+      string(v_dir ? "up " : "down ") + lexical_cast<string>(target_steps_y);
+
+    cout << h_command << endl;
+    cout << v_command << endl;
+  }
 
   this->previous_point = new_point;
 }

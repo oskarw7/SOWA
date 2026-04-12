@@ -20,7 +20,7 @@ class Serial {
 
   void send(packet p);
   void send(string s);
-  
+
   void receive(packet* p);
   string readUntil(char c);
 };
