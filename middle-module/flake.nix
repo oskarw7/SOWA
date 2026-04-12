@@ -14,13 +14,17 @@
         in {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              arduino-ide
               python313
-              python3Packages.pyserial
+		          ruff
+							ty
+							uv
+							ffmpeg
+							python313Packages.opencv4						
+							xorg.libxcb
+							xorg.libX11
+							libGL
+							arduino-ide
               zlib
-              uv
-              ruff
-              ty
               stdenv.cc.cc.lib
               glib
               nixfmt-rfc-style
