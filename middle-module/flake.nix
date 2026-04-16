@@ -36,6 +36,7 @@
               ninja
               socat
               jq
+              esptool
             ];
 
             shellHook = ''
