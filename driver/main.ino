@@ -60,15 +60,9 @@ class StepperHandler {
   }
 
   void init(float speed, float acceleration, uint8_t dirPin) {
-    if (stepper) {
-      stepper->setDirectionPin(dirPin, false);
-      stepper->setSpeedInHz(speed);
-      stepper->setAcceleration(acceleration);
-
-      Serial.println("Initialization of motor succesful!");
-    } else {
-      Serial.println("Initialization of motor failed!");
-    }
+    stepper->setDirectionPin(dirPin, false);
+    stepper->setSpeedInHz(speed);
+    stepper->setAcceleration(acceleration);
   }
 
   bool canMove(float direction) {
@@ -77,8 +71,6 @@ class StepperHandler {
 
       if ((direction < 0 && VPosDeg <= kMaxDegreesDown) ||
           (direction > 0 && VPosDeg >= kMaxDegreesUp)) {
-        Serial.println("Can't move to specified angle!");
-
         return false;
       }
     }
@@ -133,38 +125,42 @@ class StepperHandler {
   }
 };
 
-struct packet_t {
-  float value;
+typedef struct __attribute__((packed)) {
   uint8_t header;
   uint8_t name;
   uint8_t additional;
   uint8_t checksum = 0;
-} packet;
+  float value;
+} packet_t;
 
 enum name {
-    move,
-    stop,
-    reset,
-    magnetometer
+  move,
+  stop,
+  reset_pos,
+  restart_esp,
+  esp_ok,
+  used
 };
 
 enum direction {
-    left,
-    right,
-    up,
-    down
+  left,
+  right,
+  up,
+  down
 };
 
 enum stop {
   hor,
   vert,
   both
-}
+};
 
 FastAccelStepperEngine g_engine = FastAccelStepperEngine();
 
 StepperHandler* g_horizontal_motor = nullptr;
 StepperHandler* g_vertical_motor = nullptr;
+
+packet_t packet;
 
 void checkMovementConstraints() {
   int32_t VStopPos =
@@ -178,22 +174,25 @@ void checkMovementConstraints() {
   if (g_vertical_motor->isRunning() && !g_vertical_motor->isStopping()) {
     if (VStopPos <= kMaxDegreesDown * vert_SPD && movementDir == (-1)) {
       g_vertical_motor->stopMove();
-
-      Serial.println("Stopped at max down");
     } else if (VStopPos >= kMaxDegreesUp * vert_SPD && movementDir == 1) {
       g_vertical_motor->stopMove();
-
-      Serial.println("Stopped at max up");
     }
   }
 }
 
-bool checkCheksum() {
-  uint8_t checksum = packet.additional ^ packet.header ^ packet.name;
+void calculate_checksum(packet_t* p) {
+  p->checksum = p->additional ^ p->header ^ p->name;
   for (int i = 0; i < 4; i++) {
-    checksum ^= (packet.value && 0b1111111 << 8 * i);
+    p->checksum ^= (p->value && 0b1111111 << 8 * i);
   }
-  return checksum == packet.checksum; 
+}
+
+bool check_checksum(packet_t p) {
+  uint8_t checksum = p.additional ^ p.header ^ p.name;
+  for (int i = 0; i < 4; i++) {
+    checksum ^= (p.value && 0b1111111 << 8 * i);
+  }
+  return checksum == p.checksum;
 }
 
 void setup() {
@@ -207,6 +206,14 @@ void setup() {
 
   g_horizontal_motor->init(kHSpeed, kHAccel, kHDirPin);
   g_vertical_motor->init(kVSpeed, kVAccel, kVDirPin);
+
+  packet.header = kHeader;
+  packet.name = name::esp_ok;
+  packet.additional = 0;
+  packet.value = 0.0;
+  calculate_checksum(&packet);
+
+  Serial.write((byte*)&packet, sizeof(packet_t));
 }
 
 
@@ -214,10 +221,11 @@ void loop() {
   checkMovementConstraints();
 
   if (Serial.available() >= sizeof(packet_t)) {
-    Serial.readBytes((char*)&packet, sizeof(packet_t));
+    Serial.readBytes((byte*)&packet, sizeof(packet_t));
   }
 
-  if (checkCheksum && packet.header == kHeader) {
+  
+  if (packet.name != name::used && check_checksum(packet) && packet.header == kHeader) {
     switch (packet.name)
     {
       case name::move:
@@ -252,10 +260,15 @@ void loop() {
             break;
         }
         break;
-      case name::reset:
+      case name::reset_pos:
         g_vertical_motor->setCurrentPosition(0);
         g_horizontal_motor->setCurrentPosition(0);
         break;
+      case name::restart_esp:
+        ESP.restart();
+        break;
     }
+
+    packet.name = name::used;
   }
 }

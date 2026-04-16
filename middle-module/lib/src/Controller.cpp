@@ -10,9 +10,9 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/lexical_cast.hpp>
-#include "Controller.h"
-#include "Serial.h"
-#include "Helpers.h"
+#include "sowa-lib/Controller.hpp"
+#include "sowa-lib/Serial.hpp"
+#include "sowa-lib/helpers.hpp"
 #include <boost/random/linear_congruential.hpp>
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
@@ -40,11 +40,26 @@ Controller::Controller(std::string dev, const unsigned int baudRate)
 
 Controller::Controller(bool t) : previous_point(0, 0), testing_mode(t) {}
 
-void calculate_checksum(packet* p) {
-  p->checksum = p->additional ^ p->header ^ p->name;
-  for (int i = 0; i < 4; i++) {
-    p->checksum ^= (p->value && 0b1111111 << 8 * i);
+
+bool Controller::init_device() const {
+  packet_t p {
+    kHeader,
+    name::restart_esp,
+    0,
+    0,
+    0.0
+  };
+
+  calculate_checksum(&p);
+  serial->send(p);
+
+  serial->receive(&p);                // wait for a response
+  cout << "received " << p.name << endl;
+  if (check_checksum(p) && p.name == name::esp_ok) {
+    cout << "Esp is ready !" << endl;
+    return true;
   }
+  return false;
 }
 
 void Controller::new_move(int x, int y) {
@@ -64,18 +79,20 @@ void Controller::new_move(int x, int y) {
   bool v_dir = target_vec.y() > 0;
 
   if (!testing_mode) {
-    packet h_pack {
-      target_steps_x,
+    packet_t h_pack {
       kHeader,
       name::move,
-      h_dir ? direction::right : direction::left
+      h_dir ? direction::right : direction::left,
+      0,
+      target_steps_x
     };
 
-    packet v_pack {
-      target_steps_y,
+    packet_t v_pack {
       kHeader,
       name::move,
-      v_dir ? direction::up : direction::down
+      v_dir ? direction::up : direction::down,
+      0,
+      target_steps_y
     };
 
     calculate_checksum(&h_pack);
@@ -83,6 +100,8 @@ void Controller::new_move(int x, int y) {
 
     serial->send(h_pack);
     serial->send(v_pack);
+
+    cout << "packets sent!" << endl;
   } else {
     string h_command =
       string(h_dir ? "right " : "left ") + lexical_cast<string>(target_steps_x);

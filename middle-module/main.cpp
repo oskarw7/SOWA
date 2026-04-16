@@ -1,19 +1,21 @@
 // ============================================================================
 // Copyright 2026 SOWA
 // ============================================================================
-#include "Serial.h"
-#include "Controller.h"
+#include "sowa-lib/Serial.hpp"
+#include "sowa-lib/Controller.hpp"
+#include <iostream>
 
 constexpr unsigned int kBaudRate = 115200;
 
 int main() {
-  // Controller cc("/dev/ttyUSB0", kBaudRate);
-  Controller cc(true);
+  // Controller cc("/dev/ttyACM0", kBaudRate);
+  Controller cc("/tmp/virt", kBaudRate);
 
-  cc.new_move(100, 100);
-  cc.new_move(0, 0);
-  cc.new_move(100, 100);
-
+  if (cc.init_device()) {
+    cc.new_move(123, 123);
+  } else {
+    std::cout << "Failed to init the device!" << std::endl;
+  }
 
   return 0;
 }
