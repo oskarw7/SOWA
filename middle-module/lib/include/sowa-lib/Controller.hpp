@@ -5,7 +5,7 @@
 
 #include <memory>
 #include <string>
-#include "Serial.h"
+#include "sowa-lib/Serial.hpp"
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry.hpp>
 
@@ -21,5 +21,6 @@ class Controller {
   Controller(std::string dev, const unsigned int baudRate);
   explicit Controller(bool t);
 
+  bool init_device() const;
   void new_move(int x, int y);
 };

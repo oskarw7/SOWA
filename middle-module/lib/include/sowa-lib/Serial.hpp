@@ -5,7 +5,7 @@
 
 #include <string>
 #include <boost/asio.hpp>
-#include "Helpers.h"
+#include "sowa-lib/helpers.hpp"
 
 using std::string;
 
@@ -18,9 +18,7 @@ class Serial {
   Serial(string portName, unsigned int baudRate);
   ~Serial();
 
-  void send(packet p);
-  void send(string s);
+  void send(packet_t p);
 
-  void receive(packet* p);
-  string readUntil(char c);
+  void receive(packet_t* p);
 };
