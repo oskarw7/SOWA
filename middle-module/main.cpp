@@ -1,9 +1,9 @@
 // ============================================================================
 // Copyright 2026 SOWA
 // ============================================================================
+#include <iostream>
 #include "sowa-lib/Serial.hpp"
 #include "sowa-lib/Controller.hpp"
-#include <iostream>
 
 constexpr unsigned int kBaudRate = 115200;
 
