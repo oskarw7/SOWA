@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 project(SowaMiddleModule VERSION 0.9)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_subdirectory(lib)

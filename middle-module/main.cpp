@@ -9,7 +9,8 @@ constexpr unsigned int kBaudRate = 115200;
 
 int main() {
   // Controller cc("/dev/ttyACM0", kBaudRate);
-  Controller cc("/tmp/virt", kBaudRate);
+  // Controller cc("/tmp/virt", kBaudRate);
+  Controller cc(true);
 
   if (cc.init_device()) {
     cc.new_move(123, 123);

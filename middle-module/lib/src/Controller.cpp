@@ -42,6 +42,10 @@ Controller::Controller(bool t) : previous_point(0, 0), testing_mode(t) {}
 
 
 bool Controller::init_device() const {
+  if (testing_mode) {
+    return true;
+  }
+
   packet_t p {
     kHeader,
     name::restart_esp,
