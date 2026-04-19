@@ -32,7 +32,7 @@ class Drone():
                     self.current_check_point  = (self.current_check_point + 1)  % len(self.check_points)
                     break
             sleep(dt)
-            print(f"{self.position=} {v=}")
+            # print(f"{self.position=} {v=}")
 
 
 if __name__ == "__main__":

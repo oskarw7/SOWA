@@ -6,41 +6,8 @@ from Scene import Scene
 from Drone import Drone
 from time import sleep
 import threading
+from Parser import Parser
 
-
-def handle_command(cam, cmd):
-    parts = cmd.strip().lower().split()
-
-    i = 0
-    while i < len(parts):
-        direction = parts[i]
-
-        if i + 1 < len(parts) and parts[i + 1].isdigit():
-            value = int(parts[i + 1])
-            i += 2
-        else:
-            value = 1
-            i += 1
-
-        if direction == "up":
-            cam.move_vertical( -1 * value)
-        elif direction == "down":
-            cam.move_vertical(value)
-        elif direction == "left":
-            cam.move_horizontal(-1 * value)
-        elif direction == "right":
-            cam.move_horizontal(value)
-        elif direction == "stop":
-            with cam.lock():
-                cam.orientation_target =  cam.orientation
-        else:
-            print(f"Unknown command: {direction}")
-
-def input_thread(camera):
-    while True:
-        cmd = input()
-        handle_command(cam,cmd)
-       
 
 
 
@@ -65,11 +32,19 @@ ffmpeg_cmd = [
 
 proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
+serial_emulation = subprocess.Popen(["socat",
+    "-d", "-d", "-v", "-x",
+    "PTY,link=/tmp/virt,raw,echo=0",
+    "PTY,link=/tmp/virt2,raw,echo=0"
+,])
 
 scene = Scene.Scene()
 cam = Camera.Camera(scene)
 cam.start()
-threading.Thread(target=input_thread, args=(cam,), daemon=True).start()
+
+parser = Parser.Parser(cam,"serial")
+parser.start()
+
 frame = cam.get_frame()
 x=0
 dt = 1/ 300
@@ -93,3 +68,5 @@ while True:
     sleep(dt)
 
 
+serial_emulation.terminate()
+serial_emulation.wait()

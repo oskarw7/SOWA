@@ -1,11 +1,24 @@
 import cv2
 import numpy as np
 import threading
+from enum import IntEnum,auto
 from time import sleep,monotonic
+
 class Frame:
     def __init__(self, width = 1920, height = 1080):
         self.width = width
-        self.height = height 
+        self.height = height
+
+class DIRECTION(IntEnum):
+   LEFT =  0
+   RIGHT =  auto()
+   UP =  auto()
+   DOWN = auto()
+
+class STOP(IntEnum):
+   HOR =  0
+   VERT =  auto()
+   BOTH =  auto()
 
 
 class Camera:
@@ -22,6 +35,22 @@ class Camera:
 
         self.scene.extend_image_for_fast_wrap(self.frame.width)
 
+
+    def move(self, direction: int , deg: int) -> None:
+        match direction:
+            case DIRECTION.LEFT:
+                 self.orientation_target[0] = (self.orientation[0] + deg) % 360
+            case DIRECTION.RIGHT:
+                 self.orientation_target[0] = (self.orientation[0] - deg) % 360
+            case DIRECTION.UP:
+                 self.orientation_target[1] = (self.orientation[1] - deg) % 180 
+            case DIRECTION.DOWN:
+                 self.orientation_target[1] = (self.orientation[1] + deg) % 180 
+
+    def stop(self)->None:
+        with self.lock:
+            self.orientation_target = self.orientation
+            self.v = [0,0]
 
     def move_horizontal(self,deg: int )-> None:
         self.orientation_target[0] =  (self.orientation[0] + deg) % 360
