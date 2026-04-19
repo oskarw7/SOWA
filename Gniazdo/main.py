@@ -42,6 +42,7 @@ scene = Scene.Scene()
 cam = Camera.Camera(scene)
 cam.start()
 
+# parser = Parser.Parser(cam)
 parser = Parser.Parser(cam,"serial")
 parser.start()
 

@@ -4,7 +4,7 @@ import struct
 from enum import IntEnum,auto
 from Camera.Camera import DIRECTION 
 from Camera.Camera import STOP
-
+import os
 HEADER = 0x55
 PACKET_SIZE = 8
 FORMAT = "<BBBBf"
@@ -23,9 +23,11 @@ class Parser():
         if(mode == 'console'):
             self.input_thread = self.input_thread_console
         elif(mode == 'serial'):
-
             self.input_thread = self.input_thread_serial
-            self.serial0 = serial.Serial(port='/tmp/virt',baudrate=115200,timeout=1)
+            port = os.path.realpath("/tmp/virt")
+            print("link:", os.readlink("/tmp/virt"))
+            print("real:", os.path.realpath("/tmp/virt"))
+            self.serial0 = serial.Serial(port=port,baudrate=115200,timeout=1)
             print(f"Starting serial ...")
 
     def start(self):
