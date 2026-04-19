@@ -101,12 +101,12 @@ class Parser():
 
 
     def _handle_serial_command(self,cam,cmd):
-        print(cmd, f"{NAME.MOVE}")
+        
         (header, name, additional, checksum, value ) = cmd
         print( (name,additional))
         match (name, additional):
             case (NAME.MOVE.value,x):
-                print(f"moving camera")
+                print(f"moving camera {x} {value}")
                 cam.move(additional,value)
             case (NAME.STOP,_):
                 cam.stop()

@@ -6,8 +6,9 @@ from time import sleep,monotonic
 
 class Frame:
     def __init__(self, width = 1920, height = 1080):
-        self.width = width
-        self.height = height
+        self.shape = [width,height]
+        self.width = self.shape[0]
+        self.height = self.shape[1]
 
 class DIRECTION(IntEnum):
    LEFT =  0
@@ -27,7 +28,7 @@ class Camera:
         self.orientation_target = self.orientation.copy()
         self.scene = scene
         self.frame = Frame()
-        self.a = [5,2]
+        self.a = [20,20]
         self.v = [0,0]
         self.axis_ranges = [360,180]
         self.lock = threading.Lock()
@@ -39,13 +40,13 @@ class Camera:
     def move(self, direction: int , deg: int) -> None:
         match direction:
             case DIRECTION.LEFT:
-                 self.orientation_target[0] = (self.orientation[0] + deg) % 360
+                 self.orientation_target[0] = (self.orientation_target[0] + deg) % 360
             case DIRECTION.RIGHT:
-                 self.orientation_target[0] = (self.orientation[0] - deg) % 360
+                 self.orientation_target[0] = (self.orientation_target[0] - deg) % 360
             case DIRECTION.UP:
-                 self.orientation_target[1] = (self.orientation[1] - deg) % 180 
+                 self.orientation_target[1] = (self.orientation_target[1] - deg) % 180 
             case DIRECTION.DOWN:
-                 self.orientation_target[1] = (self.orientation[1] + deg) % 180 
+                 self.orientation_target[1] = (self.orientation_target[1] + deg) % 180 
 
     def stop(self)->None:
         with self.lock:
@@ -64,6 +65,18 @@ class Camera:
             self.b_x = 0 if self.orientation[0] == 0 else  int( self.orientation[0] /360 * self.scene.image_width)
         # print(f"{self.b_x=}, {self.b_y=}")
         return [self.b_x, self.b_y]
+
+    def get_frame_resolve_drone_offset(self, drone_position) -> ([], [int,int]):
+        table = self._resolve_orientation()
+        offset = []
+        frame0 = self.scene.get_frame(self.b_x,self.b_y,self.frame.width,self.frame.height) 
+        for axis in range(2):
+            offset.append((drone_position[axis]- table[axis])  % self.scene.image_width )
+            print(drone_position, table, offset)
+            if not offset[axis] <= table[axis] + self.frame.shape[axis] or not offset[axis] > 0:
+                return (frame0,[-1,-1])    
+        return (frame0, [y/2 - x for x,y in zip(offset, self.frame.shape)])
+
 
     def get_frame(self):
 
@@ -95,7 +108,9 @@ class Camera:
                     self.v[axis] += direction * acceleration_dir * self.a[axis] * dt
                     # print(f" {distance_to_be_covered=:.2f} {self.v[axis]=:.2f} {orientation_delta=} {self.orientation=}" )
                     self.orientation[axis] += self.v[axis] * dt
-                    self.orientation[axis] %= self.axis_ranges[axis] 
+                    self.orientation[axis] %= self.axis_ranges[axis]
+                else :
+                    self.v[axis] =0 
             
     def _loop(self, fps):
         timestamp = monotonic()
@@ -103,7 +118,7 @@ class Camera:
             dt = monotonic() - timestamp
             self._move_camera(dt)
             timestamp = monotonic()
-            sleep(1/fps)
+            sleep(0.001)
 
 if __name__ == '__main__':
     cam = Camera()
