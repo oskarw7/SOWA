@@ -12,7 +12,7 @@
 #include "sowa-lib/Serial.hpp"
 #include "sowa-lib/helpers.hpp"
 
-constexpr float h_scaling = 116.0/1920.0;
+constexpr float h_scaling = 180.0/1920.0;
 constexpr float v_scaling = 65.0/1080.0;
 
 constexpr double kMoveThreshold = 0.2;
@@ -69,10 +69,10 @@ void Controller::new_move(int x, int y) {
   float target_steps_x = abs(static_cast<float>(target_vec.x() * h_scaling));
   float target_steps_y = abs(static_cast<float>(target_vec.y() * v_scaling));
 
-  if (std::sqrt(std::pow(target_steps_x, 2) +
-      std::pow(target_steps_y, 2)) < kMoveThreshold) {
-    return;
-  }
+  // if (std::sqrt(std::pow(target_steps_x, 2) +
+  //     std::pow(target_steps_y, 2)) < kMoveThreshold) {
+  //   return;
+  // }
 
   if (!testing_mode) {
     packet_t h_pack {
@@ -97,7 +97,7 @@ void Controller::new_move(int x, int y) {
     serial->send(h_pack);
     serial->send(v_pack);
 
-    cout << "packets sent!" << endl;
+    cout << "packets sent!" << target_steps_x << target_steps_y << endl;
   } else {
     string h_command =
       string(h_dir ? "right " : "left ") + lexical_cast<string>(target_steps_x);
