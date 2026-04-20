@@ -14,6 +14,8 @@ int main() {
 
   if (cc.init_device()) {
     cc.new_move(123, 123);
+    cc.new_move(126, 124);
+    cc.new_move(-123, 0);
   } else {
     std::cout << "Failed to init the device!" << std::endl;
   }

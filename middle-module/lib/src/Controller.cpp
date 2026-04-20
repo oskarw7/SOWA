@@ -4,8 +4,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <thread>
-#include <chrono>
 #include <memory>
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -13,17 +11,11 @@
 #include "sowa-lib/Controller.hpp"
 #include "sowa-lib/Serial.hpp"
 #include "sowa-lib/helpers.hpp"
-#include <boost/random/linear_congruential.hpp>
-#include <boost/random/uniform_real.hpp>
-#include <boost/random/variate_generator.hpp>
-#include <boost/generator_iterator.hpp>
 
 constexpr float h_scaling = 116.0/1920.0;
 constexpr float v_scaling = 65.0/1080.0;
 
-constexpr double kMoveThreshold = 0.05;
-
-typedef boost::minstd_rand base_generator_type;
+constexpr double kMoveThreshold = 0.2;
 
 using boost::geometry::model::d2::point_xy;
 using boost::lexical_cast;
@@ -68,19 +60,19 @@ bool Controller::init_device() const {
 
 void Controller::new_move(int x, int y) {
   point_xy<int> new_point(x, y);
-  point_xy<int> target_vec(abs(x - this->previous_point.x()),
-                      abs(y - this->previous_point.y()));
-
-  float target_steps_x = static_cast<float>(target_vec.x() * h_scaling);
-  float target_steps_y = static_cast<float>(target_vec.y() * v_scaling);
-
-  if (std::pow(target_steps_x, 2) +
-      std::pow(target_steps_y, 2) < kMoveThreshold) {
-    return;
-  }
+  point_xy<int> target_vec(x - this->previous_point.x(),
+                          y - this->previous_point.y());
 
   bool h_dir = target_vec.x() > 0;
   bool v_dir = target_vec.y() > 0;
+
+  float target_steps_x = abs(static_cast<float>(target_vec.x() * h_scaling));
+  float target_steps_y = abs(static_cast<float>(target_vec.y() * v_scaling));
+
+  if (std::sqrt(std::pow(target_steps_x, 2) +
+      std::pow(target_steps_y, 2)) < kMoveThreshold) {
+    return;
+  }
 
   if (!testing_mode) {
     packet_t h_pack {
