@@ -4,7 +4,8 @@
 #pragma once
 
 #include <string>
-#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/serial_port.hpp>
 #include "sowa-lib/helpers.hpp"
 
 using std::string;

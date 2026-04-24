@@ -12,8 +12,9 @@ std::ifstream zupa("/tmp/rura");
 
 int main() {
   // Controller cc("/dev/ttyACM0", kBaudRate);
-  Controller cc("/tmp/virt2", kBaudRate);
-  // Controller cc(true);
+  // Controller cc("/tmp/virt2", kBaudRate);
+  Controller cc(true);
+  std::cout << "zupa" << std::endl;
 
   int x{0}, y{0};
   int counter =0 ;
