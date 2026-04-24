@@ -43,7 +43,9 @@ ffmpeg_cmd = [
     "-r",
     str(fps),
     "-i",
-    "-",  # stdin
+    "-",
+    "-vf",
+    "format=yuv420p",  # stdin
     "-c:v",
     "libx264",
     "-preset",
@@ -60,8 +62,8 @@ ffmpeg_cmd = [
 proc = subprocess.Popen(
     ffmpeg_cmd,
     stdin=subprocess.PIPE,
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL,
+    # stdout=subprocess.DEVNULL,
+    # stderr=subprocess.DEVNULL,
 )
 
 
