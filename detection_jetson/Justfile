@@ -27,5 +27,5 @@ test:
     -L/opt/nvidia/deepstream/deepstream/lib \
     -lnvdsgst_meta -lnvds_meta \
     -Wl,-rpath,/opt/nvidia/deepstream/deepstream/lib
-  -./test config_infer_main.txt file:///home/sowa/SOWA/detection_jetson/inference_input/drone1_mov5.mov
+  -./test config_infer_main.txt rtsp://192.168.1.14:8554/live.stream
   rm test
