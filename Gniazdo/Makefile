@@ -5,6 +5,8 @@ run-server:
 	docker run --rm -it \
 	-v $(PWD)/rtsp-simple-server.yml:/rtsp-simple-server.yml \
 	-p 8554:8554 \
+	-p 8000:8000/udp \
+  -p 8001:8001/udp \
 	aler9/rtsp-simple-server:v1.3.0
 
 # Play the RTSP stream using ffplay

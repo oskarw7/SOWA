@@ -39,10 +39,17 @@ class Camera:
 
     def move(self, direction: int , deg: int) -> None:
         match direction:
+<<<<<<< Updated upstream
             case DIRECTION.LEFT:
                  self.orientation_target[0] = (self.orientation_target[0] + deg) % 360
             case DIRECTION.RIGHT:
                  self.orientation_target[0] = (self.orientation_target[0] - deg) % 360
+=======
+            case DIRECTION.RIGHT:
+                self.orientation_target[0] = (self.orientation_target[0] + deg) % 360
+            case DIRECTION.LEFT:
+                self.orientation_target[0] = (self.orientation_target[0] - deg) % 360
+>>>>>>> Stashed changes
             case DIRECTION.UP:
                  self.orientation_target[1] = (self.orientation_target[1] - deg) % 180 
             case DIRECTION.DOWN:

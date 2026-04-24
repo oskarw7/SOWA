@@ -24,7 +24,7 @@ class Parser():
             self.input_thread = self.input_thread_console
         elif(mode == 'serial'):
             self.input_thread = self.input_thread_serial
-            port = os.path.realpath("/tmp/virt")
+            port = os.path.realpath("/dev/ttyACM0")
             print("link:", os.readlink("/tmp/virt"))
             print("real:", os.path.realpath("/tmp/virt"))
             self.serial0 = serial.Serial(port=port,baudrate=115200,timeout=1)

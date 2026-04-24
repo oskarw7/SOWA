@@ -1,6 +1,9 @@
 import cv2
+<<<<<<< Updated upstream
 import numpy as np
 import subprocess
+=======
+>>>>>>> Stashed changes
 from Camera import Camera
 from Scene import Scene 
 from Drone import Drone
@@ -73,6 +76,7 @@ dt = 1/ 300
 drone = Drone.Drone() 
 drone.start()
 
+<<<<<<< Updated upstream
 cv2.imwrite("test.jpg",drone.image)
 proc3 = subprocess.Popen([
     "ffplay",
@@ -82,10 +86,19 @@ proc3 = subprocess.Popen([
 stdout=subprocess.DEVNULL,
 stderr=subprocess.DEVNULL
 )
+=======
+cv2.imwrite("test.jpg", drone.image)
+# proc3 = subprocess.Popen(
+#     ["ffplay", "-rtsp_transport", "tcp", "rtsp://localhost:8554/live.stream"],
+#     stdout=subprocess.DEVNULL,
+#     stderr=subprocess.DEVNULL,
+# )
+>>>>>>> Stashed changes
 
 while True:
     x+=1
     with drone.lock:
+<<<<<<< Updated upstream
     
         dr_x , dr_y = drone.position
     isInFrame = scene.overlay_image(drone.image, int(dr_x) , int(dr_y))
@@ -95,6 +108,21 @@ while True:
     q.put((offset[0],offset[1]))
     sleep(dt)
 
+=======
+        dr_x, dr_y = drone.position
+
+    isInFrame = scene.overlay_image(drone.image, int(dr_x), int(dr_y))
+
+    frame, offset = cam.get_frame_resolve_drone_offset([int(dr_x), int(dr_y)])
+    # frame[1080 // 2 : 1080 // 2 + 100, 1920 // 2 : 1920 // 2 + 100] = np.zeros(
+    #     (100, 100, 3), np.uint8
+    # ).copy()
+    proc.stdin.write(frame.tobytes())
+    q.put((offset[0], offset[1]))
+    print((offset[0], offset[1]))
+    sleep(dt)
+    # print(f"current fps = {1 / (time() - timestamp)}")
+>>>>>>> Stashed changes
 
 
 serial_emulation.terminate()
