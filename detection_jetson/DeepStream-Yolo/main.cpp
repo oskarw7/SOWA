@@ -74,9 +74,6 @@ static GstPadProbeReturn probe(GstPad *pad, GstPadProbeInfo *info, gpointer u_da
             printf("%d %d\n", static_cast<int>(offsetX), static_cast<int>(offsetY));
             outputPipeToMm << static_cast<int>(offsetX) << " " << static_cast<int>(offsetY) << "\n";
             outputPipeToMm.flush();
-
-            // TODO: API pass
-            // ------ PLACE FOR API PASS -----
         }
     }
     return GST_PAD_PROBE_OK;
