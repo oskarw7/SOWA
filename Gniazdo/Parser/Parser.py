@@ -17,16 +17,14 @@ class NAME(IntEnum):
 FMT = struct.Struct(FORMAT)
 
 class Parser():
-    def __init__(self,cam,mode = "console"):
+    def __init__(self,cam,device = "/tmp/virt",mode = "console"):
         self.running = False
         self.cam = cam
         if(mode == 'console'):
             self.input_thread = self.input_thread_console
         elif(mode == 'serial'):
             self.input_thread = self.input_thread_serial
-            port = os.path.realpath("/dev/ttyACM0")
-            print("link:", os.readlink("/tmp/virt"))
-            print("real:", os.path.realpath("/tmp/virt"))
+            port = os.path.realpath(device)
             self.serial0 = serial.Serial(port=port,baudrate=115200,timeout=1)
             print(f"Starting serial ...")
 
