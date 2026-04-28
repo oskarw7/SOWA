@@ -20,7 +20,7 @@ FMT = struct.Struct(FORMAT)
 
 
 class Parser():
-    def __init__(self,cam,device = "/tmp/virt",mode = "console"):
+    def __init__(self,cam,mode = "console",device = "/tmp/virt"):
 
         self.running = False
         self.cam = cam

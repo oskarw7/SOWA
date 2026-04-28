@@ -89,10 +89,10 @@ class Camera:
         )
         for axis in range(2):
             offset.append((drone_position[axis] - table[axis]) % self.scene.image_width)
-            # print(drone_position, table, offset)
+            print(drone_position, table, offset)
             if (
-                not offset[axis] <= table[axis] + self.frame.shape[axis]
-                or not offset[axis] > 0
+                offset[axis] >= self.frame.shape[axis]
+                or offset[axis] < 0
             ):
                 return (frame0, [-1, -1])
         return (frame0, [y / 2 - x for x, y in zip(offset, self.frame.shape)])
