@@ -11,8 +11,8 @@ import os
 import queue
 
 proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE,
-# stdout=subprocess.DEVNULL,
-#  stderr=subprocess.DEVNULL,
+stdout=subprocess.DEVNULL,
+ stderr=subprocess.DEVNULL,
 )
 
 args = InitArgsParser.arg_parser.parse_args()
@@ -22,6 +22,7 @@ if not args.middle_module:
 
 if not args.detection:
     q = queue.Queue()
+    # os.mkfifo("/tmp/rura")
     threading.Thread(target=sender,args=[q], daemon=True).start()
    
 
@@ -35,7 +36,6 @@ parser.start()
 
 frame = cam.get_frame()
 proc.stdin.write(frame.tobytes())
-x=0
 dt = 1/ 300
 
 drone = Drone.Drone() 
@@ -51,11 +51,8 @@ if args.visualize:
  
 
 while True:
-    x+=1
     dr_x, dr_y = drone.position
-
-    isInFrame = scene.overlay_image(drone.image, int(dr_x), int(dr_y))
-
+    scene.overlay_object(drone)
     frame, offset = cam.get_frame_resolve_drone_offset([int(dr_x), int(dr_y)])
     proc.stdin.write(frame.tobytes())
     if args.detection:

@@ -31,7 +31,7 @@ def sender(q):
             q.queue.clear()
         while True:
             x, y = q.get()
-            print(x,y)
+            print(x,y,"wysylam")
             if x != -1:
                 rura.write(f"{int(x)} {int(y)}\n")
                 rura.flush()

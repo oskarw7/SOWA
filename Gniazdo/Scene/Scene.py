@@ -30,8 +30,14 @@ class Scene():
             frame = self.image[y : y + h ,x : x + w]
             return frame.copy()
 
-    def overlay_image(self, overlay, x, y):
 
+    def overlay_object(self, object_to_overlay):
+        print(object_to_overlay.position)
+        self.overlay_image(object_to_overlay.image,*object_to_overlay.position)
+
+    def overlay_image(self, overlay, x, y):
+        x = int(x)
+        y = int(y)
 
         with self.lock:
             
