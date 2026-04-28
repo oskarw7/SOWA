@@ -45,6 +45,7 @@ constexpr uint8_t SELECTION_IDX = 1;
 constexpr uint8_t ANGLE_IDX = 1;
 constexpr uint8_t ACCEL_IDX = 2;
 
+constexpr uint8_t kHeader = 0b01010101;
 
 class StepperHandler {
  private:
@@ -59,15 +60,9 @@ class StepperHandler {
   }
 
   void init(float speed, float acceleration, uint8_t dirPin) {
-    if (stepper) {
-      stepper->setDirectionPin(dirPin, false);
-      stepper->setSpeedInHz(speed);
-      stepper->setAcceleration(acceleration);
-
-      Serial.println("Initialization of motor succesful!");
-    } else {
-      Serial.println("Initialization of motor failed!");
-    }
+    stepper->setDirectionPin(dirPin, false);
+    stepper->setSpeedInHz(speed);
+    stepper->setAcceleration(acceleration);
   }
 
   bool canMove(float direction) {
@@ -76,8 +71,6 @@ class StepperHandler {
 
       if ((direction < 0 && VPosDeg <= kMaxDegreesDown) ||
           (direction > 0 && VPosDeg >= kMaxDegreesUp)) {
-        Serial.println("Can't move to specified angle!");
-
         return false;
       }
     }
@@ -94,25 +87,12 @@ class StepperHandler {
                         blocking);
   }
 
-  void moveByAcceleration(
-      int32_t acceleration, bool allow_reverse = true) {
-    if (!canMove(acceleration)) {
-      return;
-    }
-
-    stepper->moveByAcceleration(acceleration, allow_reverse);
-  }
-
   float getStepsPerDegree() {
     return stepsPerDegree;
   }
 
   void stopMove() {
     stepper->stopMove();
-  }
-
-  void forceStop() {
-    stepper->forceStop();
   }
 
   int32_t getCurrentPosition() {
@@ -145,43 +125,42 @@ class StepperHandler {
   }
 };
 
+typedef struct __attribute__((packed)) {
+  uint8_t header;
+  uint8_t name;
+  uint8_t additional;
+  uint8_t checksum = 0;
+  float value;
+} packet_t;
+
+enum name {
+  move,
+  stop,
+  reset_pos,
+  restart_esp,
+  esp_ok,
+  used
+};
+
+enum direction {
+  left,
+  right,
+  up,
+  down
+};
+
+enum stop {
+  hor,
+  vert,
+  both
+};
+
 FastAccelStepperEngine g_engine = FastAccelStepperEngine();
 
 StepperHandler* g_horizontal_motor = nullptr;
 StepperHandler* g_vertical_motor = nullptr;
 
-String g_message[kMaxMessageSubstrings];
-
-
-int stringSplit(String inputString, char delimiter, String outputString[]) {
-  uint8_t subStringCount = 0;
-  uint8_t previousCutoff = 0;
-  uint8_t strLen = inputString.length();
-
-  for (uint8_t i = 0; i < strLen; ++i) {
-    if (inputString[i] == delimiter) {
-      outputString[subStringCount++] =
-          inputString.substring(previousCutoff, i);
-
-      previousCutoff = i+1;
-    }
-  }
-  // take the last one
-  outputString[subStringCount++] =
-      inputString.substring(previousCutoff, strLen);
-
-  return subStringCount;
-}
-
-bool isNumber(String inputString) {
-  for (uint8_t i = 0; i < inputString.length(); ++i) {
-    if (!isDigit(inputString[i])) {
-      return false;
-    }
-  }
-
-  return true;
-}
+packet_t packet;
 
 void checkMovementConstraints() {
   int32_t VStopPos =
@@ -195,14 +174,25 @@ void checkMovementConstraints() {
   if (g_vertical_motor->isRunning() && !g_vertical_motor->isStopping()) {
     if (VStopPos <= kMaxDegreesDown * vert_SPD && movementDir == (-1)) {
       g_vertical_motor->stopMove();
-
-      Serial.println("Stopped at max down");
     } else if (VStopPos >= kMaxDegreesUp * vert_SPD && movementDir == 1) {
       g_vertical_motor->stopMove();
-
-      Serial.println("Stopped at max up");
     }
   }
+}
+
+void calculate_checksum(packet_t* p) {
+  p->checksum = p->additional ^ p->header ^ p->name;
+  for (int i = 0; i < 4; i++) {
+    p->checksum ^= (std::bit_cast<uint32_t>(p->value) >> (8 * i) & 0b11111111);
+  }
+}
+
+bool check_checksum(packet_t p) {
+  uint8_t checksum = p.additional ^ p.header ^ p.name;
+  for (int i = 0; i < 4; i++) {
+    checksum ^= (std::bit_cast<uint32_t>(p.value) >> (8 * i) & 0b11111111);
+  }
+  return checksum == p.checksum;
 }
 
 void setup() {
@@ -216,139 +206,69 @@ void setup() {
 
   g_horizontal_motor->init(kHSpeed, kHAccel, kHDirPin);
   g_vertical_motor->init(kVSpeed, kVAccel, kVDirPin);
+
+  packet.header = kHeader;
+  packet.name = name::esp_ok;
+  packet.additional = 0;
+  packet.value = 0.0;
+  calculate_checksum(&packet);
+
+  Serial.write((byte*)&packet, sizeof(packet_t));
 }
 
 
 void loop() {
   checkMovementConstraints();
 
-  if (Serial.available() > 0) {
-    String serialInput = Serial.readStringUntil('\n');
-
-    // Clear previous g_message
-    for (uint8_t i = 0; i < kMaxMessageSubstrings; ++i) {
-      if (g_message[i].equals("")) {
-        break;
-      }
-
-      g_message[i] = "";
-    }
-
-    stringSplit(serialInput, ' ', g_message);
-
-    // Sanitize input
-    for (uint8_t i = 0; i < kMaxMessageSubstrings; ++i) {
-      if (g_message[i].equals("")){
-        break;
-      }
-
-      g_message[i].trim();
-      g_message[i].toLowerCase();
-    }
+  if (Serial.available() >= sizeof(packet_t)) {
+    Serial.readBytes((byte*)&packet, sizeof(packet_t));
   }
 
-  if (!g_message[ACTION_IDX].equals("")) {
-    String act = g_message[ACTION_IDX];
-
-    if (act.equals("move")) {
-      float angle = g_message[ANGLE_IDX].toFloat();
-
-      if (isNumber(g_message[ACCEL_IDX]) && isNumber(g_message[ANGLE_IDX])) {
-        float accel = g_message[ACCEL_IDX].toFloat();
-        int32_t accelHor = cos(angle * PI/180) * accel * (-1);
-        int32_t accelVer = sin(angle * PI/180) * accel;
-
-        g_horizontal_motor->moveByAcceleration(accelHor);
-        g_vertical_motor->moveByAcceleration(accelVer);
-
-        Serial.print("Moving the camera, angle: ");
-        Serial.print(angle);
-        Serial.print(" accel: ");
-        Serial.println(accel);
-      } else {
-        String dir = g_message[DIRECTION_IDX];
-
-        if (dir.equals("right") || dir.equals("left")) {
-          angle *= (dir.equals("left") ? 1 : (-1));
-          g_horizontal_motor->move(angle);
-
-          Serial.print("Moving hor: ");
-          Serial.println(angle);
-        } else if (dir.equals("up") || dir.equals("down")) {
-          angle *= (dir.equals("up") ? 1 : (-1));
-
-          g_vertical_motor->move(angle);
-
-          Serial.print("Moving ver: ");
-          Serial.println(angle);
+  
+  if (packet.name != name::used && check_checksum(packet) && packet.header == kHeader) {
+    switch (packet.name)
+    {
+      case name::move:
+        switch (packet.additional)
+        {
+          case direction::right:
+            g_horizontal_motor->move(packet.value);
+            break;
+          case direction::left:
+            g_horizontal_motor->move(packet.value * (-1));
+            break;
+          case direction::up:
+            g_vertical_motor->move(packet.value);
+            break;
+          case direction::down:
+            g_vertical_motor->move(packet.value * (-1));
+            break;
         }
-      }
-    } else if (act.equals("stop")) {
-      String sel = g_message[SELECTION_IDX];
-
-      if (sel.equals("horizontal")) {
-        g_horizontal_motor->stopMove();
-
-        Serial.println("Stopping hor");
-      } else if (sel.equals("vertical")) {
-        g_vertical_motor->stopMove();
-
-        Serial.println("Stopping ver");
-      } else if ((sel.equals("both"))) {
-        g_horizontal_motor->stopMove();
-        g_vertical_motor->stopMove();
-
-        Serial.println("Stopping both");
-      }
-    } else if (act.equals("showcase")) {
-      // For showcase of full range of motion
-      g_horizontal_motor->move(FULL_SPIN_DEG, true);
-      g_horizontal_motor->move(-FULL_SPIN_DEG, true);
-      g_vertical_motor->move(FULL_SPIN_DEG);
-      while (g_vertical_motor->isRunning()) {
-        checkMovementConstraints();
-        delay(50);
-      }
-      g_vertical_motor->move(-FULL_SPIN_DEG);
-      while (g_vertical_motor->isRunning()) {
-        checkMovementConstraints();
-        delay(50);
-      }
-
-      g_horizontal_motor->move(-15);
-      g_vertical_motor->move(180.0);
-      while (g_vertical_motor->isRunning()) {
-        checkMovementConstraints();
-        delay(50);
-      }
-      g_horizontal_motor->move(30);
-      g_vertical_motor->move(-180.0);
-      while (g_vertical_motor->isRunning()) {
-        checkMovementConstraints();
-        delay(50);
-      }
-
-      g_horizontal_motor->move(-180);
-      g_vertical_motor->move(45);
-      while (g_vertical_motor->isRunning()) {
-        checkMovementConstraints();
-        delay(50);
-      }
-      g_vertical_motor->move(-60);
-      while (g_vertical_motor->isRunning()) {
-        checkMovementConstraints();
-        delay(50);
-      }
-      g_horizontal_motor->move(90, true);
-      g_horizontal_motor->stopMove();
-      g_vertical_motor->stopMove();
-    } else if (act.equals("reset pos")) {
-      g_vertical_motor->setCurrentPosition(0);
-      g_horizontal_motor->setCurrentPosition(0);
-
-      Serial.println("Position reset");
+        break;
+      case name::stop:
+        switch (packet.additional)
+        {
+          case stop::hor:
+            g_horizontal_motor->stopMove();
+            break;
+          case stop::vert:
+            g_vertical_motor->stopMove();
+            break;
+          case stop::both:
+            g_horizontal_motor->stopMove();
+            g_vertical_motor->stopMove();
+            break;
+        }
+        break;
+      case name::reset_pos:
+        g_vertical_motor->setCurrentPosition(0);
+        g_horizontal_motor->setCurrentPosition(0);
+        break;
+      case name::restart_esp:
+        ESP.restart();
+        break;
     }
-  }
 
-  g_message[ACTION_IDX] = "";
+    packet.name = name::used;
+  }
 }

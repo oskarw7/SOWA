@@ -1,7 +1,11 @@
+import queue
+import subprocess
+import threading
+from time import sleep, time
+
 import cv2
 import subprocess
 from Camera import Camera
-from Scene import Scene 
 from Drone import Drone
 from time import sleep
 from helpers import *
@@ -38,7 +42,7 @@ frame = cam.get_frame()
 proc.stdin.write(frame.tobytes())
 dt = 1/ 300
 
-drone = Drone.Drone() 
+drone = Drone.Drone()
 drone.start()
 
 if args.visualize:
@@ -59,7 +63,7 @@ while True:
         q.put((offset[0], offset[1]))
     print((offset[0], offset[1]))
     sleep(dt)
-
+    print(f"current fps = {1 / (time() - timestamp)}")
 
 serial_emulation.terminate()
 serial_emulation.wait()
