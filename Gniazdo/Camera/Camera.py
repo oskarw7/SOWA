@@ -173,12 +173,12 @@ class Camera:
         while self.running:
             dt = monotonic() - timestamp
             self._move_camera(dt)
-            if Camera.out_of_frame_counter > 24 * 5:
-                # print(self._resolve_orientation(),self._calculate_offset(self._resolve_orientation(),self.tracked_obj.position))
-                offset = [x - y for x,y in zip(self._calculate_offset(self._resolve_orientation(),self.tracked_obj.position),self._resolve_orientation())]
-                centered_offset = [y / 2 - x for x, y in zip(self.orientation, self.frame.shape)]
+            if  self.auto_reset and Camera.out_of_frame_counter > 24 * 5 :
+                centered_offset = [x - y / 2  for x, y in zip(self.tracked_obj.position, self.frame.shape)]
                 with self.lock:
-                    self.orientation = [x/y for x,y in zip(centered_offset,self.scene.image.shape)]
+                    self.orientation = [x/y * z for x,y,z in zip(centered_offset,[self.scene.image_width,self.scene.image_height],[360,180])]
+                # print(centered_offset, self.tracked_obj.position, self._resolve_orientation())
+                Camera.out_of_frame_counter=0
             timestamp = monotonic()
             sleep(0.001)
 
