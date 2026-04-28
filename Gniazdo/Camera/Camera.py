@@ -26,30 +26,36 @@ class STOP(IntEnum):
 
 
 class Camera:
-    def __init__(self, scene):
+    out_of_frame_counter = 0
+
+    def __init__(self, scene, auto_reset=False):
         self.orientation = [0, 90]
         self.orientation_target = self.orientation.copy()
         self.scene = scene
         self.frame = Frame()
-        self.a = [90, 90]
+        self.a = [20, 20]
         self.v = [0, 0]
         self.axis_ranges = [360, 180]
         self.lock = threading.Lock()
         self.running = False
-
+        self.auto_reset = auto_reset
         self.scene.extend_image_for_fast_wrap(self.frame.width)
+        self.tracked_obj = None 
+
+    def inject_tracked_obj(self, obj):
+        self.tracked_obj = obj
 
     def move(self, direction: int, deg: int) -> None:
         match direction:
 
             case DIRECTION.LEFT:
-                self.orientation_target[0] = (self.orientation_target[0] + deg) % 360
+                self.orientation_target[0] = (self.orientation[0] + deg) % 360
             case DIRECTION.RIGHT:
-                self.orientation_target[0] = (self.orientation_target[0] - deg) % 360
+                self.orientation_target[0] = (self.orientation[0] - deg) % 360
             case DIRECTION.UP:
-                self.orientation_target[1] = (self.orientation_target[1] - deg) % 180
+                self.orientation_target[1] = (self.orientation[1] - deg) % 180
             case DIRECTION.DOWN:
-                self.orientation_target[1] = (self.orientation_target[1] + deg) % 180
+                self.orientation_target[1] = (self.orientation[1] + deg) % 180
 
     def stop(self) -> None:
         with self.lock:
@@ -57,12 +63,13 @@ class Camera:
             self.v = [0, 0]
 
     def move_horizontal(self, deg: int) -> None:
-        self.orientation_target[0] = (self.orientation[0] + deg) % 360
+        self.orientation[0] = (self.orientation[0] + deg) % 360
 
     def move_vertical(self, deg: int) -> None:
         self.orientation_target[1] = (self.orientation[1] + deg) % 180
 
     def _resolve_orientation(self):
+
         with self.lock:
             self.b_y = (
                 0
@@ -81,25 +88,33 @@ class Camera:
         # print(f"{self.b_x=}, {self.b_y=}")
         return [self.b_x, self.b_y]
 
+
+    def _calculate_offset(self,coords1, coords2) -> [int,int]:
+        return [(x - y )% self.scene.image_width  for x,y in zip(coords1,coords2)]
+
+
     def get_frame_resolve_drone_offset(self, drone_position) -> ([], [int, int]):
-        table = self._resolve_orientation()
+        frame_position = self._resolve_orientation()
         offset = []
         frame0 = self.scene.get_frame(
             self.b_x, self.b_y, self.frame.width, self.frame.height
         )
+        offset = self._calculate_offset(drone_position,frame_position)
         for axis in range(2):
-            offset.append((drone_position[axis] - table[axis]) % self.scene.image_width)
-            print(drone_position, table, offset)
+            # offset.append((drone_position[axis] - frame_position[axis]) % self.scene.image_width)
+            # print(drone_position, frame_position, offset)
             if (
                 offset[axis] >= self.frame.shape[axis]
                 or offset[axis] < 0
             ):
+                Camera.out_of_frame_counter += 1
                 return (frame0, [-1, -1])
+        Camera.out_of_frame_counter = 0
         return (frame0, [y / 2 - x for x, y in zip(offset, self.frame.shape)])
 
     def get_frame(self):
 
-        table = self._resolve_orientation()
+        frame_position = self._resolve_orientation()
         frame0 = self.scene.get_frame(
             self.b_x, self.b_y, self.frame.width, self.frame.height
         )
@@ -158,6 +173,12 @@ class Camera:
         while self.running:
             dt = monotonic() - timestamp
             self._move_camera(dt)
+            if Camera.out_of_frame_counter > 24 * 5:
+                # print(self._resolve_orientation(),self._calculate_offset(self._resolve_orientation(),self.tracked_obj.position))
+                offset = [x - y for x,y in zip(self._calculate_offset(self._resolve_orientation(),self.tracked_obj.position),self._resolve_orientation())]
+                centered_offset = [y / 2 - x for x, y in zip(self.orientation, self.frame.shape)]
+                with self.lock:
+                    self.orientation = [x/y for x,y in zip(centered_offset,self.scene.image.shape)]
             timestamp = monotonic()
             sleep(0.001)
 

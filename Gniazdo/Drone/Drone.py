@@ -10,7 +10,7 @@ class Drone:
         self._position = [0,1600]
         self.scale = 0.1
         self.image = cv2.resize(self.base_image, None, fx=self.scale, fy=self.scale)
-        self.check_points = [(1000, 1600, 2), (900, 1850, 3), (1500, 2000, 4)]
+        self.check_points = [(1000, 1600, 2), (900, 1850, 3), (1500, 2000, 4), (1600,2000,2)]
         self.lock = threading.Lock()
         self.current_check_point = 0
 

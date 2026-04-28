@@ -20,8 +20,8 @@ ffmpeg_cmd = [
 emulate_serial_connection_socat_cmd = [
     "socat",
     "-d", "-d", "-x",
-    "PTY,link=/tmp/virt,raw,echo=0",
-    "PTY,link=/tmp/virt2,raw,echo=0"
+    "PTY,link=/tmp/virt,raw",
+    "PTY,link=/tmp/virt2,raw"
 ,]
 
 
@@ -31,7 +31,7 @@ def sender(q):
             q.queue.clear()
         while True:
             x, y = q.get()
-            print(x,y,"wysylam")
+            # print(x,y,"wysylam")
             if x != -1:
                 rura.write(f"{int(x)} {int(y)}\n")
                 rura.flush()

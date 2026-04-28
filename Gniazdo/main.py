@@ -21,11 +21,11 @@ stdout=subprocess.DEVNULL,
 )
 args = InitArgsParser.arg_parser.parse_args()
 scene = Scene.Scene()
-cam = Camera.Camera(scene)
+cam = Camera.Camera(scene,args.auto_reset)
 cam.start()
 print(args)
 if not args.ext_middle_module:
-    serial_emulation = subprocess.Popen(emulate_serial_connection_socat_cmd)
+    serial_emulation = subprocess.Popen(emulate_serial_connection_socat_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     sleep(1)
     middle_module_proc = subprocess.Popen(["../middle-module/build/main"])
 
@@ -51,6 +51,7 @@ dt = 1/ 300
 
 drone = Drone.Drone()
 drone.start()
+cam.inject_tracked_obj(drone)
 
 if args.visualize:
     
@@ -68,7 +69,8 @@ while True:
     proc.stdin.write(frame.tobytes())
     if not args.ext_detection:
         q.put((offset[0], offset[1]))
-    print((offset[0], offset[1]))
+    # print((offset[0], offset[1]))
+    print([x-y for x,y in zip(cam.orientation, cam.orientation_target) ], cam._resolve_orientation(), offset )
     sleep(dt)
 
 serial_emulation.terminate()

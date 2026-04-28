@@ -32,7 +32,7 @@ class Scene():
 
 
     def overlay_object(self, object_to_overlay):
-        print(object_to_overlay.position)
+        # print(object_to_overlay.position)
         self.overlay_image(object_to_overlay.image,*object_to_overlay.position)
 
     def overlay_image(self, overlay, x, y):

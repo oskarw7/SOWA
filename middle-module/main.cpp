@@ -11,8 +11,8 @@ constexpr unsigned int kBaudRate = 115200;
 std::ifstream zupa("/tmp/rura");
 
 int main() {
-  Controller cc("/dev/ttyGS0", kBaudRate);
-  // Controller cc("/tmp/virt2", kBaudRate);
+  // Controller cc("/dev/ttyGS0", kBaudRate);
+  Controller cc("/tmp/virt2", kBaudRate);
   // Controller cc(true);
   std::cout << "zupa" << std::endl;
 

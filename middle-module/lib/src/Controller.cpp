@@ -52,7 +52,7 @@ bool Controller::init_device() const {
   serial->send(p);
 
   serial->receive(&p);                // wait for a response
-  cout << "received " << p.name << endl;
+  // cout << "received " << p.name << endl;
   if (check_checksum(p) && p.name == name::esp_ok) {
     cout << "Esp is ready !" << endl;
     return true;
@@ -99,7 +99,7 @@ void Controller::new_move(int x, int y) {
     serial->send(h_pack);
     serial->send(v_pack);
 
-    cout << "packets sent!" << (h_dir ? "right" : "left") << " " << target_steps_x << " " << (v_dir ? "up" : "down") << " " << target_steps_y << endl;
+    // cout << "packets sent!" << (h_dir ? "right" : "left") << " " << target_steps_x << " " << (v_dir ? "up" : "down") << " " << target_steps_y << endl;
   } else {
     string h_command =
       string(h_dir ? "right " : "left ") + lexical_cast<string>(target_steps_x);
@@ -111,5 +111,5 @@ void Controller::new_move(int x, int y) {
     cout << v_command << endl;
   }
 
-  this->previous_point = new_point;
+  // this->previous_point = new_point;
 }

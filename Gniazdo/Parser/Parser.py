@@ -108,7 +108,7 @@ class Parser():
         # print((name, additional))
         match (name, additional):
             case (NAME.MOVE.value, x):
-                print(f"moving camera {x} {value}")
+                # print(f"moving camera {x} {value}")
                 cam.move(additional, value)
             case (NAME.STOP, _):
                 cam.stop()
