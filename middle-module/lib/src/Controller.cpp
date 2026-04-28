@@ -2,17 +2,16 @@
 // Copyright 2026 SOWA
 // ============================================================================
 #include <iostream>
-#include <vector>
 #include <string>
+#include <cmath>
 #include <memory>
+#include <numbers>
 #include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/lexical_cast.hpp>
 #include "sowa-lib/Controller.hpp"
 #include "sowa-lib/Serial.hpp"
 #include "sowa-lib/helpers.hpp"
-//fov szerob/pixele tla
-//fov / pixele 
+
+constexpr double rad2deg = (180.0)/std::numbers::pi;
 
 constexpr float h_scaling = (1920.0/8192.0 * 360.0) / 1920.0;
 constexpr float v_scaling = (1080.0/4096.0 * 180.0)/1080.0;
@@ -20,19 +19,18 @@ constexpr float v_scaling = (1080.0/4096.0 * 180.0)/1080.0;
 constexpr double kMoveThreshold = 0.2;
 
 using boost::geometry::model::d2::point_xy;
-using boost::lexical_cast;
 using std::string;
-using std::vector;
-using std::endl;
-using std::cout;
 
 
 Controller::Controller(std::string dev, const unsigned int baudRate)
   : serial(std::make_unique<Serial>(dev, baudRate))
-  , previous_point(0, 0)
-  , testing_mode(false) {}
+  , testing_mode(false)
+  , device_coordinates({0, 0, 0}) {}
 
-Controller::Controller(bool t) : previous_point(0, 0), testing_mode(t) {}
+Controller::Controller(std::string dev, const unsigned int baudRate, bool t)
+  : serial(std::make_unique<Serial>(dev, baudRate))
+  , testing_mode(t)
+  , device_coordinates({0, 0, 0}) {}
 
 
 bool Controller::init_device() const {
@@ -52,64 +50,48 @@ bool Controller::init_device() const {
   serial->send(p);
 
   serial->receive(&p);                // wait for a response
-  cout << "received " << p.name << endl;
+
   if (check_checksum(p) && p.name == name::esp_ok) {
-    cout << "Esp is ready !" << endl;
+    std::cout << "Esp is ready !" << std::endl;
     return true;
   }
   return false;
 }
 
-void Controller::new_move(int x, int y) {
-  point_xy<int> new_point(x, y);
-  point_xy<int> target_vec(x - this->previous_point.x(),
-                          y - this->previous_point.y());
+void new_move(direction dir, double deg) {
+  packet_t pack {
+    kHeader,
+    name::move,
+    dir,
+    0,
+    deg
+  };
+  calculate_checksum(&pack);
 
-  bool h_dir = target_vec.x() > 0;
-  bool v_dir = target_vec.y() > 0;
+  serial->send(pack);
+}
 
-  float target_steps_x = abs(static_cast<float>(target_vec.x() * h_scaling));
-  float target_steps_y = abs(static_cast<float>(target_vec.y() * v_scaling));
+void Controller::new_detection(int x, int y) {
+  float degrees_x = abs(static_cast<float>(x * h_scaling));
+  float degrees_y = abs(static_cast<float>(y * v_scaling));
 
-   if (std::sqrt(std::pow(target_steps_x, 2) +
-       std::pow(target_steps_y, 2)) < kMoveThreshold) {
-     return;
+  if (std::sqrt(degrees_x * degrees_x +
+    degrees_y * degrees_y) < kMoveThreshold) {
+    return;
   }
 
-  if (!testing_mode) {
-    packet_t h_pack {
-      kHeader,
-      name::move,
-      h_dir ? direction::right : direction::left,
-      0,
-      target_steps_x
-    };
+  new_move(x > 0 ? direction::right : direction::left, degrees_x);
+  new_move(y > 0 ? direction::up : direction::down, degrees_y);
+}
 
-    packet_t v_pack {
-      kHeader,
-      name::move,
-      v_dir ? direction::up : direction::down,
-      0,
-      target_steps_y
-    };
+void Controller::new_gps_data(double lat, double lon, double alt) const {
+  double dX = lat - this->device_coordinates.a[0];
+  double dY = lon - this->device_coordinates.a[1];
+  double dZ = alt - this->device_coordinates.a[2];
 
-    calculate_checksum(&h_pack);
-    calculate_checksum(&v_pack);
+  double yaw = std::atan2(dX, dZ) * rad2deg;
+  double pitch = std::atan2(dY, std::sqrt(dZ * dZ + dX * dX)) * rad2deg;
 
-    serial->send(h_pack);
-    serial->send(v_pack);
-
-    cout << "packets sent!" << (h_dir ? "right" : "left") << " " << target_steps_x << " " << (v_dir ? "up" : "down") << " " << target_steps_y << endl;
-  } else {
-    string h_command =
-      string(h_dir ? "right " : "left ") + lexical_cast<string>(target_steps_x);
-
-    string v_command =
-      string(v_dir ? "up " : "down ") + lexical_cast<string>(target_steps_y);
-
-    cout << h_command << endl;
-    cout << v_command << endl;
-  }
-
-  this->previous_point = new_point;
+  new_move(dX > 0 ? direction::right : direction::left, yaw);
+  new_move(dY > 0 ? direction::up : direction::down, pitch);
 }
