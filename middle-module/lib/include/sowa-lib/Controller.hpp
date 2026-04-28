@@ -16,7 +16,8 @@ class Controller {
  private:
   std::unique_ptr<Serial> serial;
   bool testing_mode;
-  vec<double, 3> device_coordinates;
+  vec<float, 3> device_coordinates;
+  void new_move(direction dir, float deg) const;
 
  public:
   Controller(std::string dev, const unsigned int baudRate);
@@ -24,5 +25,5 @@ class Controller {
 
   bool init_device() const;
   void new_detection(int x, int y);
-  void new_gps_data(double lat, double lon, double alt) const;
+  void new_gps_data(float lat, float lon, float alt) const;
 };

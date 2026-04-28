@@ -11,12 +11,12 @@
 #include "sowa-lib/Serial.hpp"
 #include "sowa-lib/helpers.hpp"
 
-constexpr double rad2deg = (180.0)/std::numbers::pi;
+constexpr float rad2deg = (180.0)/std::numbers::pi;
 
 constexpr float h_scaling = (1920.0/8192.0 * 360.0) / 1920.0;
 constexpr float v_scaling = (1080.0/4096.0 * 180.0)/1080.0;
 
-constexpr double kMoveThreshold = 0.2;
+constexpr float kMoveThreshold = 0.2;
 
 using boost::geometry::model::d2::point_xy;
 using std::string;
@@ -58,7 +58,7 @@ bool Controller::init_device() const {
   return false;
 }
 
-void new_move(direction dir, double deg) {
+void Controller::new_move(direction dir, float deg) const {
   packet_t pack {
     kHeader,
     name::move,
@@ -66,6 +66,7 @@ void new_move(direction dir, double deg) {
     0,
     deg
   };
+
   calculate_checksum(&pack);
 
   serial->send(pack);
@@ -84,13 +85,13 @@ void Controller::new_detection(int x, int y) {
   new_move(y > 0 ? direction::up : direction::down, degrees_y);
 }
 
-void Controller::new_gps_data(double lat, double lon, double alt) const {
-  double dX = lat - this->device_coordinates.a[0];
-  double dY = lon - this->device_coordinates.a[1];
-  double dZ = alt - this->device_coordinates.a[2];
+void Controller::new_gps_data(float lat, float lon, float alt) const {
+  float dX = lat - this->device_coordinates.a[0];
+  float dY = lon - this->device_coordinates.a[1];
+  float dZ = alt - this->device_coordinates.a[2];
 
-  double yaw = std::atan2(dX, dZ) * rad2deg;
-  double pitch = std::atan2(dY, std::sqrt(dZ * dZ + dX * dX)) * rad2deg;
+  float yaw = std::atan2(dX, dZ) * rad2deg;
+  float pitch = std::atan2(dY, std::sqrt(dZ * dZ + dX * dX)) * rad2deg;
 
   new_move(dX > 0 ? direction::right : direction::left, yaw);
   new_move(dY > 0 ? direction::up : direction::down, pitch);
