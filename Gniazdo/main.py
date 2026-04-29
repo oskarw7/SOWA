@@ -40,7 +40,8 @@ if not args.ext_detection:
    
 
 
-
+if args.ext_middle_module:
+    parser = Parser.Parser(cam,"serial",args.ext_middle_module)
 
 parser = Parser.Parser(cam,"serial")
 parser.start()
