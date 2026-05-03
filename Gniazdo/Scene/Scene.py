@@ -13,8 +13,12 @@ class Scene():
         self._last_blit_y = None
         self._last_blit_w = None
         self._last_blit_h = None
-    
+        self._is_Extended = False
+        self._extension_pixels = 0
+
     def extend_image_for_fast_wrap(self,frame_width):
+        self._is_Extended = True
+        self._extension_pixels = frame_width
         with self.lock:
             #we are adding an overlap so that the left most part of the image is also on the end of the array so that we dont reach 
             #over the last index of array when generating frames around that area
@@ -26,14 +30,22 @@ class Scene():
             frame = self.image[y : y + h ,x : x + w]
             return frame.copy()
 
-    def overlay_image(self, overlay, x, y):
-        #TODO add another instance if in the overlap to the left of 0    
 
+    def overlay_object(self, object_to_overlay):
+        # print(object_to_overlay.position)
+        self.overlay_image(object_to_overlay.image,*object_to_overlay.position)
+
+    def overlay_image(self, overlay, x, y):
+        x = int(x)
+        y = int(y)
 
         with self.lock:
             
             if self._last_blit_x:
                 self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self._last_blit_x:self._last_blit_x+self._last_blit_w] = self._under_last_blit
+                if self._last_blit_x < self._extension_pixels :
+
+                    self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self.image_width + self._last_blit_x:self.image_width + self._last_blit_x+self._last_blit_w] = self._under_last_blit
 
             h, w = overlay.shape[:2]
 
@@ -68,3 +80,5 @@ class Scene():
             self._last_blit_w = w
             self._last_blit_h = h
             self.image[y:y+h, x:x+w] = blended.astype("uint8")
+            if x < self._extension_pixels :
+                self.image[y:y+h, self.image_width + x: self.image_width + x+w] = blended.astype("uint8")

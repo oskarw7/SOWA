@@ -1,95 +1,78 @@
+import queue
+import subprocess
+import threading
+from time import sleep, time
+
 import cv2
-import numpy as np
 import subprocess
 from Camera import Camera
-from Scene import Scene 
 from Drone import Drone
+from Scene import Scene
 from time import sleep
+from helpers import *
 import threading
+from Parser import Parser,InitArgsParser
+import os
+import queue
 
-
-def handle_command(cam, cmd):
-    parts = cmd.strip().lower().split()
-
-    i = 0
-    while i < len(parts):
-        direction = parts[i]
-
-        if i + 1 < len(parts) and parts[i + 1].isdigit():
-            value = int(parts[i + 1])
-            i += 2
-        else:
-            value = 1
-            i += 1
-
-        if direction == "up":
-            cam.move_vertical( -1 * value)
-        elif direction == "down":
-            cam.move_vertical(value)
-        elif direction == "left":
-            cam.move_horizontal(-1 * value)
-        elif direction == "right":
-            cam.move_horizontal(value)
-        elif direction == "stop":
-            with cam.lock():
-                cam.orientation_target =  cam.orientation
-        else:
-            print(f"Unknown command: {direction}")
-
-def input_thread(camera):
-    while True:
-        cmd = input()
-        handle_command(cam,cmd)
-       
-
-
-
-width, height = 1920, 1080
-fps = 24
-
-ffmpeg_cmd = [
-    "ffmpeg",
-    "-re",
-    "-f", "rawvideo",
-    "-pix_fmt", "bgr24",
-    "-s", f"{width}x{height}",
-    "-r", str(fps),
-    "-i", "-",  # stdin
-    "-c:v", "libx264",
-    "-preset", "ultrafast",
-    "-tune", "zerolatency",
-    "-f", "rtsp",
-    "-rtsp_transport", "tcp",
-    "rtsp://localhost:8554/live.stream"
-]
-
-proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
-
-
+proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE,
+stdout=subprocess.DEVNULL,
+ stderr=subprocess.DEVNULL,
+)
+args = InitArgsParser.arg_parser.parse_args()
 scene = Scene.Scene()
-cam = Camera.Camera(scene)
+cam = Camera.Camera(scene,args.auto_reset)
 cam.start()
-threading.Thread(target=input_thread, args=(cam,), daemon=True).start()
+print(args)
+if not args.ext_middle_module:
+    serial_emulation = subprocess.Popen(emulate_serial_connection_socat_cmd,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    sleep(1)
+    middle_module_proc = subprocess.Popen(["../middle-module/build/main"])
+
+if args.console_control:
+    console_parser = Parser.Parser(cam,"console")
+    console_parser.start()
+
+if not args.ext_detection:
+    q = queue.Queue()
+    # os.mkfifo("/tmp/rura")
+    threading.Thread(target=sender,args=(q,), daemon=True).start()
+   
+
+
+if args.ext_middle_module:
+    parser = Parser.Parser(cam,"serial",args.ext_middle_module)
+else:
+    parser = Parser.Parser(cam,"serial")
+parser.start()
+
 frame = cam.get_frame()
-x=0
+proc.stdin.write(frame.tobytes())
 dt = 1/ 300
 
-drone = Drone.Drone() 
+drone = Drone.Drone()
 drone.start()
+cam.inject_tracked_obj(drone)
 
-cv2.imwrite("test.jpg",drone.image)
+if args.visualize:
+    
+    player = subprocess.Popen(
+        ["ffplay", "-rtsp_transport", "tcp", "rtsp://localhost:8554/live.stream"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+ 
 
 while True:
-
-    x+=1
-    frame = cam.get_frame()
-    with drone.lock:
-    
-        dr_x , dr_y = drone.position
-    scene.overlay_image(drone.image, int(dr_x) , int(dr_y))
+    dr_x, dr_y = drone.position
+    scene.overlay_object(drone)
+    frame, offset = cam.get_frame_resolve_drone_offset([int(dr_x), int(dr_y)])
     proc.stdin.write(frame.tobytes())
-    
-
+    if not args.ext_detection:
+        q.put((offset[0], offset[1]))
+    # print((offset[0], offset[1]))
+    print([x-y for x,y in zip(cam.orientation, cam.orientation_target) ], cam._resolve_orientation(), offset )
     sleep(dt)
 
-
+serial_emulation.terminate()
+serial_emulation.wait()
