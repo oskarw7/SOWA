@@ -4,6 +4,7 @@ from time import monotonic, sleep
 
 import cv2
 
+DELAY_IN_STEPPER = 0.1
 
 class Frame:
     def __init__(self, width=1920, height=1080):
@@ -28,10 +29,11 @@ class STOP(IntEnum):
 class Camera:
     out_of_frame_counter = 0
 
-    def __init__(self, scene, auto_reset=False):
+    def __init__(self, sim, auto_reset=False):
         self.orientation = [0, 90]
+        self.sim = sim
         self.orientation_target = self.orientation.copy()
-        self.scene = scene
+        self.scene = sim.Scene
         self.frame = Frame()
         self.a = [20, 20]
         self.v = [0, 0]
@@ -41,6 +43,7 @@ class Camera:
         self.auto_reset = auto_reset
         self.scene.extend_image_for_fast_wrap(self.frame.width)
         self.tracked_obj = None 
+        self._current_position_delayed = None
 
     def inject_tracked_obj(self, obj):
         self.tracked_obj = obj
@@ -49,13 +52,13 @@ class Camera:
         match direction:
 
             case DIRECTION.LEFT:
-                self.orientation_target[0] = (self.orientation[0] + deg) % 360
+                self.orientation_target[0] = (self._current_position_delayed[0] + deg) % 360
             case DIRECTION.RIGHT:
-                self.orientation_target[0] = (self.orientation[0] - deg) % 360
+                self.orientation_target[0] = (self._current_position_delayed[0] - deg) % 360
             case DIRECTION.UP:
-                self.orientation_target[1] = (self.orientation[1] - deg) % 180
+                self.orientation_target[1] = (self._current_position_delayed[1] - deg) % 180
             case DIRECTION.DOWN:
-                self.orientation_target[1] = (self.orientation[1] + deg) % 180
+                self.orientation_target[1] = (self._current_position_delayed[1] + deg) % 180
 
     def stop(self) -> None:
         with self.lock:
@@ -170,8 +173,13 @@ class Camera:
 
     def _loop(self, fps):
         timestamp = monotonic()
+        delay_counter = 0
         while self.running:
             dt = monotonic() - timestamp
+            delay_counter += dt
+            if delay_counter > DELAY_IN_STEPPER:
+                delay_counter = 0
+                self._current_position_delayed = self.orientation
             self._move_camera(dt)
             if  self.auto_reset and Camera.out_of_frame_counter > 24 * 5 :
                 centered_offset = [x - y / 2  for x, y in zip(self.tracked_obj.position, self.frame.shape)]

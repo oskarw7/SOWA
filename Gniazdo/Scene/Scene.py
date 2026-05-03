@@ -2,8 +2,9 @@ import cv2
 import numpy as np
 import threading
 class Scene():
-    def __init__(self):
+    def __init__(self,sim):
         self.image = cv2.imread("./bernd-dittrich-j5pUj4Kmg_Q-unsplash.jpg")
+        self.sim =sim
         self.image2 = self.image.copy() 
         self.image_width = np.size(self.image,1)
         self.image_height = np.size(self.image,0)
@@ -33,19 +34,26 @@ class Scene():
 
     def overlay_object(self, object_to_overlay):
         # print(object_to_overlay.position)
+        
         self.overlay_image(object_to_overlay.image,*object_to_overlay.position)
 
-    def overlay_image(self, overlay, x, y):
-        x = int(x)
-        y = int(y)
 
+
+
+    def overlay_image(self, overlay, x, y):
+        x = int(x) % self.image_width
+        y = int(y)
+        #             x+w < sciana  pelen obrazek tu i tu   |     x mniejsze      |      
         with self.lock:
             
             if self._last_blit_x:
                 self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self._last_blit_x:self._last_blit_x+self._last_blit_w] = self._under_last_blit
-                if self._last_blit_x < self._extension_pixels :
+                if self._last_blit_x + self._last_blit_w< self._extension_pixels :
 
                     self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self.image_width + self._last_blit_x:self.image_width + self._last_blit_x+self._last_blit_w] = self._under_last_blit
+                elif self._last_blit_x < self._extension_pixels:
+                    shrinked_w = self._extension_pixels - self._last_blit_x
+                    self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self.image_width + self._last_blit_x:self.image_width + self._last_blit_x+ shrinked_w] = self._under_last_blit[:,:shrinked_w]
 
             h, w = overlay.shape[:2]
 
@@ -63,7 +71,7 @@ class Scene():
 
             roi = self.image[y:y+h, x:x+w]
 
-            # Handle alpha or no alpha
+
             if overlay.shape[2] == 4:
                 overlay_rgb = overlay[:, :, :3].astype(float)
                 alpha = overlay[:, :, 3:] / 255.0
@@ -80,5 +88,24 @@ class Scene():
             self._last_blit_w = w
             self._last_blit_h = h
             self.image[y:y+h, x:x+w] = blended.astype("uint8")
-            if x < self._extension_pixels :
-                self.image[y:y+h, self.image_width + x: self.image_width + x+w] = blended.astype("uint8")
+            if x + w < self._extension_pixels :
+                self.image[y:y+h, self.image_width + x: self.image_width + x +w] = blended.astype("uint8")
+            elif x < self._extension_pixels:
+                w = self._extension_pixels - x
+                overlay = overlay[:h, w:]
+
+                roi = self.image[y:y+h, x:x+w]
+
+
+                if overlay.shape[2] == 4:
+                    overlay_rgb = overlay[:, :, :3].astype(float)
+                    alpha = overlay[:, :, 3:] / 255.0
+                else:
+                    overlay_rgb = overlay.astype(float)
+                    alpha = 1.0
+
+                roi_float = roi.astype(float)
+
+                blended = alpha * overlay_rgb + (1 - alpha) * roi_float     
+                          
+                
