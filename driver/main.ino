@@ -51,6 +51,7 @@ class StepperHandler {
  private:
   FastAccelStepper* stepper = nullptr;
   float stepsPerDegree;
+  
 
  public:
   StepperHandler(FastAccelStepperEngine &eng, uint8_t stepPin,
@@ -77,6 +78,7 @@ class StepperHandler {
 
     return true;
   }
+  
 
   void move(float degrees, bool blocking = false) {
     if (!canMove(degrees)) {
@@ -106,7 +108,17 @@ class StepperHandler {
   bool isRunning() {
     return stepper->isRunning();
   }
+  
+  float resolveCurrentAngle(){
+    int32_t steps = getCurrentPosition()
+    float angle = (steps % ) * 360.0f / stepsPerRevolution;
 
+    if (angle < 0) {
+        angle += 360.0f;
+    }
+
+    return angle;
+}
   int8_t getMovementDirection() {
     int32_t speed = stepper->getCurrentSpeedInUs();
 
@@ -155,6 +167,11 @@ enum stop {
   both
 };
 
+enum axis {
+  hor,
+  vert,
+}
+
 FastAccelStepperEngine g_engine = FastAccelStepperEngine();
 
 StepperHandler* g_horizontal_motor = nullptr;
@@ -195,6 +212,8 @@ bool check_checksum(packet_t p) {
   return checksum == p.checksum;
 }
 
+
+
 void setup() {
   Serial.begin(115200);
 
@@ -216,9 +235,9 @@ void setup() {
   Serial.write((byte*)&packet, sizeof(packet_t));
 }
 
-
 void loop() {
   checkMovementConstraints();
+  float targetOrientation[2] { 0.0 , 0.0};
 
   if (Serial.available() >= sizeof(packet_t)) {
     Serial.readBytes((byte*)&packet, sizeof(packet_t));
@@ -230,19 +249,21 @@ void loop() {
     {
       case name::move:
         switch (packet.additional)
-        {
+        { 
+          targetOrientation = resolveCurrentAngle()
           case direction::right:
-            g_horizontal_motor->move(packet.value);
+            targetOrientation[axis::hor] += packet.value;
             break;
           case direction::left:
-            g_horizontal_motor->move(packet.value * (-1));
+            targetOrientation[axis::hor] -= packet.value;
             break;
           case direction::up:
-            g_vertical_motor->move(packet.value);
+            targetOrientation[axis::vert] +=  packet.value;
             break;
           case direction::down:
-            g_vertical_motor->move(packet.value * (-1));
+            targetOrientation[axis::vert] -= packet.value;
             break;
+          targetOrientation %= 360.0
         }
         break;
       case name::stop:
@@ -268,6 +289,10 @@ void loop() {
         ESP.restart();
         break;
     }
+    
+    g_horizontal_motor->move(targetOrientation[axis::hor] - g_horizontal_motor->resolveCurrentAngle());
+    g_vertical_motor->move(targetOrientation[axis::vert] - g_vertical_motor->resolveCurrentAngle());
+
 
     packet.name = name::used;
   }
