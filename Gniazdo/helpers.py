@@ -9,6 +9,7 @@ ffmpeg_cmd = [
     "-s", f"{width}x{height}",
     "-r", str(fps),
     "-i", "-",  # stdin
+    "-vf", "format=yuv420p",
     "-c:v", "libx264",
     "-preset", "ultrafast",
     "-tune", "zerolatency",
