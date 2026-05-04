@@ -4,7 +4,7 @@ from time import monotonic, sleep
 
 import cv2
 
-DELAY_IN_STEPPER = 0.1
+DELAY_IN_STEPPER = 0.0001
 
 class Frame:
     def __init__(self, width=1920, height=1080):
@@ -51,9 +51,9 @@ class Camera:
     def move(self, direction: int, deg: int) -> None:
         match direction:
 
-            case DIRECTION.LEFT:
-                self.orientation_target[0] = (self._current_position_delayed[0] + deg) % 360
             case DIRECTION.RIGHT:
+                self.orientation_target[0] = (self._current_position_delayed[0] + deg) % 360
+            case DIRECTION.LEFT:
                 self.orientation_target[0] = (self._current_position_delayed[0] - deg) % 360
             case DIRECTION.UP:
                 self.orientation_target[1] = (self._current_position_delayed[1] - deg) % 180
@@ -66,7 +66,7 @@ class Camera:
             self.v = [0, 0]
 
     def move_horizontal(self, deg: int) -> None:
-        self.orientation[0] = (self.orientation[0] + deg) % 360
+        self.orientation[0] = (self.orientation[0] - deg) % 360
 
     def move_vertical(self, deg: int) -> None:
         self.orientation_target[1] = (self.orientation[1] + deg) % 180
