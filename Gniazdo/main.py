@@ -50,7 +50,7 @@ class Simulation():
             threading.Thread(target=sender,args=(self.q,), daemon=True).start()
 
         if self.args.ext_middle_module:
-            parser = Parser.Parser(self.Camera,"serial",self.args.ext_middle_module)
+            parser = Parser.Parser(self.Camera,"serial",self.args.ext_middle_module, self.args.duplicate_serial)
         else:
             parser = Parser.Parser(self.Camera,"serial")
         parser.start()

@@ -13,7 +13,13 @@ class Drone:
         self.lock = threading.Lock()
         self.current_check_point = 0
         self.sim = sim
-        self.check_points = [(600,2000,3), (-500 % self.sim.Scene.image_width,2000,3)]
+        self.check_points = []
+
+        for i in range(10):
+            if i%2:
+                self.check_points.append((300, 1400+i*60, 4))
+            else:
+                self.check_points.append((1800, 1400+i*60, 4))
 
     @property
     def position(self):
