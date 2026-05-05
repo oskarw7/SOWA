@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import threading
+import math
 class Scene():
     def __init__(self,sim):
         self.image = cv2.imread("./bernd-dittrich-j5pUj4Kmg_Q-unsplash.jpg")
@@ -34,13 +35,17 @@ class Scene():
 
     def overlay_object(self, object_to_overlay):
         # print(object_to_overlay.position)
-        
+        scale = 30/ object_to_overlay.position[2]
+        object_to_overlay.image = cv2.resize(object_to_overlay.base_image, None, fx=scale , fy=scale)
+        cv2.imwrite("./test.jpg",object_to_overlay.image)
         self.overlay_image(object_to_overlay.image,*object_to_overlay.position)
 
 
 
 
-    def overlay_image(self, overlay, x, y):
+    def overlay_image(self, overlay, x, y,z):
+        x += overlay.shape[0]/2
+        y += overlay.shape[1]/2
         x = int(x) % self.image_width
         y = int(y)
         #             x+w < sciana  pelen obrazek tu i tu   |     x mniejsze      |      
