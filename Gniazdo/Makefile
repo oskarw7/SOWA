@@ -1,4 +1,8 @@
-.PHONY: clean run-server-d run
+.PHONY: all run-server run-server-d run venv play clean
+
+.DEFAULT_GOAL := all
+
+all: clean run-server-d run
 
 # Run RTSP simple server in Docker
 run-server:
