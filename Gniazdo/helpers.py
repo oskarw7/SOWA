@@ -4,26 +4,39 @@ fps = 24
 ffmpeg_cmd = [
     "ffmpeg",
     "-re",
-    "-f", "rawvideo",
-    "-pix_fmt", "bgr24",
-    "-s", f"{width}x{height}",
-    "-r", str(fps),
-    "-i", "-",  # stdin
-    "-vf", "format=yuv420p",
-    "-c:v", "libx264",
-    "-preset", "ultrafast",
-    "-tune", "zerolatency",
-    "-f", "rtsp",
-    "-rtsp_transport", "tcp",
-    "rtsp://localhost:8554/live.stream"
+    "-f",
+    "rawvideo",
+    "-pix_fmt",
+    "bgr24",
+    "-s",
+    f"{width}x{height}",
+    "-r",
+    str(fps),
+    "-i",
+    "-",  # stdin
+    "-vf",
+    "format=yuv420p",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "ultrafast",
+    "-tune",
+    "zerolatency",
+    "-f",
+    "rtsp",
+    "-rtsp_transport",
+    "tcp",
+    "rtsp://localhost:8554/live.stream",
 ]
 
 emulate_serial_connection_socat_cmd = [
     "socat",
-    "-d", "-d", "-x",
+    "-d",
+    "-d",
+    "-x",
     "PTY,link=/tmp/virt,raw",
-    "PTY,link=/tmp/virt2,raw"
-,]
+    "PTY,link=/tmp/virt2,raw",
+]
 
 
 def sender(q):
@@ -36,4 +49,3 @@ def sender(q):
             if x != -1:
                 rura.write(f"{int(x)} {int(y)}\n")
                 rura.flush()
-

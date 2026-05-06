@@ -6,7 +6,7 @@ class GpsHandler:
     # WGS84 Earth radius
     R = 6378137.0
 
-    def __init__(self, lat0= 51, lon0 = 51, alt0 = 0):
+    def __init__(self, lat0=51, lon0=51, alt0=0):
         """
         Initialize with reference GPS point.
 
@@ -36,18 +36,19 @@ class GpsHandler:
         Convert decimal degrees to NMEA format.
         """
         if is_lat:
-            hemisphere = 'N' if coord >= 0 else 'S'
+            hemisphere = "N" if coord >= 0 else "S"
             degrees = int(abs(coord))
             minutes = (abs(coord) - degrees) * 60
             return f"{degrees:02d}{minutes:07.4f}", hemisphere
         else:
-            hemisphere = 'E' if coord >= 0 else 'W'
+            hemisphere = "E" if coord >= 0 else "W"
             degrees = int(abs(coord))
             minutes = (abs(coord) - degrees) * 60
             return f"{degrees:03d}{minutes:07.4f}", hemisphere
 
-    def generate_nema_gga(self, x_east, y_north, z_up,
-                     fix_quality=1, num_sat=8, hdop=0.9):
+    def generate_nema_gga(
+        self, x_east, y_north, z_up, fix_quality=1, num_sat=8, hdop=0.9
+    ):
         """
         Convert ENU → NMEA GGA sentence directly.
         """

@@ -19,8 +19,8 @@ class NAME(IntEnum):
 FMT = struct.Struct(FORMAT)
 
 
-class Parser():
-    def __init__(self,cam,mode = "console",device = "/tmp/virt", flag = False):
+class Parser:
+    def __init__(self, cam, mode="console", device="/tmp/virt", flag=False):
 
         self.running = False
         self.cam = cam
@@ -31,12 +31,14 @@ class Parser():
             self.input_thread = self.input_thread_serial
 
             port = os.path.realpath(device)
-            self.serial0 = serial.Serial(port=port,baudrate=115200,timeout=1)
-            print(f"Starting serial ...")
+            self.serial0 = serial.Serial(port=port, baudrate=115200, timeout=1)
+            print("Starting serial ...")
 
             if self.flag:
-                self.serial_forward = serial.Serial(port="/dev/ttyACM0",baudrate=115200,timeout=1)
-                print(f"Starting forwarding serial ...")
+                self.serial_forward = serial.Serial(
+                    port="/dev/ttyACM0", baudrate=115200, timeout=1
+                )
+                print("Starting forwarding serial ...")
 
     def start(self):
         self.running = True
@@ -94,7 +96,7 @@ class Parser():
                     continue
 
                 chunk = view[i : i + PACKET_SIZE]
-                
+
                 if self.flag:
                     self.serial_forward.write(chunk)
 
@@ -110,7 +112,6 @@ class Parser():
             write_pos = remaining
 
     def _handle_serial_command(self, cam, cmd):
-
 
         (header, name, additional, checksum, value) = cmd
         # print((name, additional))
