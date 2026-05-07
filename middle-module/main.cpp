@@ -11,9 +11,9 @@ constexpr unsigned int kBaudRate = 115200;
 std::ifstream pipeFromDetection("/tmp/rura");
 
 int main() {
-  // Controller cc("/dev/ttyGS0", kBaudRate);
-  Controller cc("/tmp/virt2", kBaudRate, true);
-
+  Controller cc("/dev/ttyGS0", kBaudRate, true);
+  // Controller cc("/tmp/virt2", kBaudRate, true);
+  
   if (cc.init_device()) {
     int x, y;
     while (true) {

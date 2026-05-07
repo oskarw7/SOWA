@@ -14,9 +14,10 @@
 constexpr float rad2deg = (180.0)/std::numbers::pi;
 
 constexpr float h_scaling = (1920.0/8192.0 * 360.0) / 1920.0;
-constexpr float v_scaling = (1080.0/4096.0 * 180.0)/1080.0;
+constexpr float v_scaling = (1080.0/(4096.0-1080) * 180.0)/1080.0;
 
-constexpr float kMoveThreshold = 0.2;
+constexpr float kHMoveThreshold = 0.1;
+constexpr float kVMoveThreshold = 1.5;
 
 using boost::geometry::model::d2::point_xy;
 using std::string;
@@ -76,13 +77,15 @@ void Controller::new_detection(int x, int y) {
   float degrees_x = abs(static_cast<float>(x * h_scaling));
   float degrees_y = abs(static_cast<float>(y * v_scaling));
 
-  if (std::sqrt(degrees_x * degrees_x +
-    degrees_y * degrees_y) < kMoveThreshold) {
-    return;
+  if (degrees_x >= kHMoveThreshold) {
+    std::cout << "New move: " << (x > 0 ? "right" : "left") << " by " << degrees_x << " degrees." << std::endl;
+    new_move(x > 0 ? direction::right : direction::left, degrees_x);
   }
-
-  new_move(x > 0 ? direction::right : direction::left, degrees_x);
-  new_move(y > 0 ? direction::up : direction::down, degrees_y);
+    
+  if (degrees_y >= kVMoveThreshold) {
+      std::cout << "New move: " << (y > 0 ? "up" : "down") << " by " << degrees_y << " degrees." << std::endl;
+    new_move(y > 0 ? direction::up : direction::down, degrees_y);
+  }
 }
 
 void Controller::new_gps_data(float lat, float lon, float alt) const {
