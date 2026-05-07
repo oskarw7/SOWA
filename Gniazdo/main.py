@@ -79,7 +79,7 @@ class Simulation():
             frame, offset = self.Camera.get_frame_resolve_drone_offset([int(dr_x) % self.Scene.image_width, int(dr_y)])
             self.Streamer.stdin.write(frame.tobytes())
             if not self.args.ext_detection:
-                self.q.put((offset[0], offset[1]))
+                self.q.put((-offset[0], offset[1]))
                 print(self.Drone.get_current_nema_gps_message())
             # print((offset[0], offset[1]))
             # print([x-y for x,y in zip(cam.orientation, cam.orientation_target) ], cam._resolve_orientation(), offset )
