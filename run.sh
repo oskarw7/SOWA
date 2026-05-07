@@ -5,6 +5,7 @@
 
 SESSION="dual-run"
 
+
 if [ ! -p "/tmp/rura" ]; then
     rm -f /tmp/rura
     echo "Robie rure"
@@ -17,7 +18,11 @@ if [ $? -eq 0 ]; then
     tmux kill-session -t $SESSION
 fi
 
-tmux new-session -d -s $SESSION "cd ../detection_jetson && just run"
+if [ $1 == "-t" ]; then
+    tmux new-session -d -s $SESSION "cd ../detection_jetson && just test"
+else    
+    tmux new-session -d -s $SESSION "cd ../detection_jetson && just run"
+fi
 
 tmux split-window -h -t $SESSION "cd middle-module && make build && sudo make run"
 
