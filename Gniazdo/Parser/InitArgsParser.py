@@ -33,3 +33,9 @@ arg_parser.add_argument(
     help="Forward packets from jetson (ACM0) to driver (ACM1)",
     action="store_true",
 )
+arg_parser.add_argument(
+    "-gps",
+    "--gps_server",
+    help="Host a web server with gps data",
+    action="store_true",
+)

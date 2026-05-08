@@ -6,6 +6,7 @@ from time import sleep
 
 from Camera import Camera
 from Drone import Drone
+from flask import Flask
 from helpers import *
 from Parser import InitArgsParser, Parser
 from Scene import Scene
@@ -32,6 +33,10 @@ class Simulation:
             stderr=subprocess.DEVNULL,
         )
         self.Subprocesses.append(self.Streamer)
+
+        if self.args.gps_server:
+            threading.Thread(target=self.gps_server, daemon=True).start()
+
         if not self.args.ext_middle_module:
             serial_emulation = subprocess.Popen(
                 emulate_serial_connection_socat_cmd,
@@ -81,9 +86,19 @@ class Simulation:
         self.Drone.start()
         self.Camera.inject_tracked_obj(self.Drone)
 
+    def gps_server(self):
+        app = Flask(__name__)
+
+        @app.route("/")
+        def home():
+            return self.Drone.get_current_nema_gps_message()
+            # return bytes(self.Drone.get_current_nema_gps_message(), 'utf-8')
+
+        app.run(port=8080)
+
     def start(self):
         dt = 1 / 300
-        
+
         while True:
             dr_x, dr_y, dr_z = self.Drone.position
             self.Scene.overlay_object(self.Drone)
@@ -91,11 +106,11 @@ class Simulation:
                 [int(dr_x) % self.Scene.image_width, int(dr_y)]
             )
             self.Streamer.stdin.write(frame.tobytes())
+
             if not self.args.ext_detection:
                 self.q.put((-offset[0], offset[1]))
-                self.Parser.serial0.write(self.Drone.get_current_nema_gps_message())
-            
-            
+                # self.Parser.serial0.write(self.Drone.get_current_nema_gps_message())
+
             # print((offset[0], offset[1]))
             # print([x-y for x,y in zip(cam.orientation, cam.orientation_target) ], cam._resolve_orientation(), offset )
             sleep(dt)
