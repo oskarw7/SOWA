@@ -35,10 +35,14 @@ class Parser:
             print("Starting serial ...")
 
             if self.flag:
+                port_fwd = "/dev/ttyACM0"
+                if port[-1] == "0":
+                    port_fwd = port_fwd[:-1] + "1"
+
                 self.serial_forward = serial.Serial(
-                    port="/dev/ttyACM0", baudrate=115200, timeout=1
+                    port=port_fwd, baudrate=115200, timeout=1, write_timeout=0.1
                 )
-                print("Starting forwarding serial ...")
+                print("Started forwarding serial ...")
 
     def start(self):
         self.running = True
@@ -96,6 +100,14 @@ class Parser:
                     continue
 
                 chunk = view[i : i + PACKET_SIZE]
+
+                calc_checksum = chunk[0] ^ chunk[1] ^ chunk[2]
+                for b in chunk[4:8]:
+                    calc_checksum ^= b
+
+                if calc_checksum != chunk[3]:
+                    i += 1  
+                    continue
 
                 if self.flag:
                     self.serial_forward.write(chunk)

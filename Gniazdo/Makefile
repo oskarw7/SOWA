@@ -22,7 +22,7 @@ run-server-d:
 	aler9/rtsp-simple-server:v1.3.0
 
 run:
-	python3 main.py -ds -v -d -cc -mm /dev/ttyACM0
+	python3 main.py -ds -v -d -cc -mm /dev/ttyACM1
 
 venv:
 	python3 -m venv .venv
