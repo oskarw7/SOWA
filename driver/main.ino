@@ -88,13 +88,20 @@ typedef struct __attribute__((packed)) {
   float value;
 } packet_t;
 
-enum name { move, stop, reset_pos, restart_esp, esp_ok, used };
+enum name : uint8_t {
+  move,
+  stop,
+  reset_pos,
+  restart_esp,
+  esp_ok,
+  used,
+  get_current_pos,
+  current_pos
+};
 
 enum direction { left, right, up, down };
 
-enum stop { hor, vert, both };
-
-enum axis { h, v };
+enum axis { hor, vert, both };
 
 FastAccelStepperEngine g_engine = FastAccelStepperEngine();
 
@@ -119,6 +126,17 @@ bool check_checksum(packet_t p) {
   return checksum == p.checksum;
 }
 
+void send_packet(name nm, uint8_t add, float val) {
+  packet.header = kHeader;
+  packet.name = nm;
+  packet.additional = add;
+  packet.value = val;
+
+  calculate_checksum(&packet);
+
+  Serial.write((byte*)&packet, sizeof(packet_t));
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -131,85 +149,82 @@ void setup() {
   g_horizontal_motor->init(kHSpeed, kHAccel, kHDirPin);
   g_vertical_motor->init(kVSpeed, kVAccel, kVDirPin);
 
-  packet.header = kHeader;
-  packet.name = name::esp_ok;
-  packet.additional = 0;
-  packet.value = 0.0;
-  calculate_checksum(&packet);
-
-  Serial.write((byte*)&packet, sizeof(packet_t));
+  send_packet(name::esp_ok, 0, 0);
 }
 
 void loop() {
-  if (Serial.available() > 0) {
+  while (Serial.available() >= sizeof(packet_t)) {
     if (Serial.peek() == kHeader) {
-      if (Serial.available() >= sizeof(packet_t)) {
-        Serial.readBytes((byte*)&packet, sizeof(packet_t));
-      }
-    }
-  }
+      Serial.readBytes((byte*)&packet, sizeof(packet_t));
 
-  if (packet.name != name::used && check_checksum(packet) &&
-      packet.header == kHeader) {
-    switch (packet.name) {
-      case name::move: {
-        float move_degrees = packet.value;
+      if (check_checksum(packet)) {
+        switch (packet.name) {
+          case name::move: {
+            float move_degrees = packet.value;
 
-        if (packet.additional == direction::right ||
-            packet.additional == direction::left) {
-          if (packet.additional == direction::left) {
-            move_degrees *= -1.0f;
+            if (packet.additional == direction::right ||
+                packet.additional == direction::left) {
+              if (packet.additional == direction::left) {
+                move_degrees *= -1.0f;
+              }
+
+              targetOrientation[axis::hor] =
+                  g_horizontal_motor->resolveCurrentAngle() + move_degrees;
+
+              g_horizontal_motor->moveTo(targetOrientation[axis::hor]);
+            } else if (packet.additional == direction::up ||
+                       packet.additional == direction::down) {
+              if (packet.additional == direction::down) {
+                move_degrees *= -1.0f;
+              }
+
+              targetOrientation[axis::vert] =
+                  g_vertical_motor->resolveCurrentAngle() + move_degrees;
+
+              if (targetOrientation[axis::vert] > kMaxDegreesUp) {
+                targetOrientation[axis::vert] = kMaxDegreesUp;
+              }
+
+              if (targetOrientation[axis::vert] < kMaxDegreesDown) {
+                targetOrientation[axis::vert] = kMaxDegreesDown;
+              }
+
+              g_vertical_motor->moveTo(targetOrientation[axis::vert]);
+            }
+            break;
           }
 
-          targetOrientation[axis::h] =
-              g_horizontal_motor->resolveCurrentAngle() + move_degrees;
-
-          g_horizontal_motor->moveTo(targetOrientation[axis::h]);
-        } else if (packet.additional == direction::up ||
-                   packet.additional == direction::down) {
-          if (packet.additional == direction::down) {
-            move_degrees *= -1.0f;
-          }
-
-          targetOrientation[axis::v] =
-              g_vertical_motor->resolveCurrentAngle() + move_degrees;
-
-          if (targetOrientation[axis::v] > kMaxDegreesUp) {
-            targetOrientation[axis::v] = kMaxDegreesUp;
-          }
-
-          if (targetOrientation[axis::v] < kMaxDegreesDown) {
-            targetOrientation[axis::v] = kMaxDegreesDown;
-          }
-
-          g_vertical_motor->moveTo(targetOrientation[axis::v]);
+          case name::stop:
+            switch (packet.additional) {
+              case axis::hor:
+                g_horizontal_motor->stopMove();
+                break;
+              case axis::vert:
+                g_vertical_motor->stopMove();
+                break;
+              case axis::both:
+                g_horizontal_motor->stopMove();
+                g_vertical_motor->stopMove();
+                break;
+            }
+            break;
+          case name::reset_pos:
+            g_vertical_motor->setCurrentPosition(0);
+            g_horizontal_motor->setCurrentPosition(0);
+            break;
+          case name::restart_esp:
+            ESP.restart();
+            break;
+          case name::get_current_pos:
+            send_packet(name::current_pos, axis::hor,
+                        g_horizontal_motor->resolveCurrentAngle());
+            send_packet(name::current_pos, axis::vert,
+                        g_vertical_motor->resolveCurrentAngle());
+            break;
         }
-        break;
       }
-
-      case name::stop:
-        switch (packet.additional) {
-          case stop::hor:
-            g_horizontal_motor->stopMove();
-            break;
-          case stop::vert:
-            g_vertical_motor->stopMove();
-            break;
-          case stop::both:
-            g_horizontal_motor->stopMove();
-            g_vertical_motor->stopMove();
-            break;
-        }
-        break;
-      case name::reset_pos:
-        g_vertical_motor->setCurrentPosition(0);
-        g_horizontal_motor->setCurrentPosition(0);
-        break;
-      case name::restart_esp:
-        ESP.restart();
-        break;
+    } else {
+      Serial.read();
     }
-
-    packet.name = name::used;
   }
 }
