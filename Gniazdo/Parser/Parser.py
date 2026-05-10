@@ -24,23 +24,25 @@ class Parser:
 
         self.running = False
         self.cam = cam
-        self.flag = flag
+        self.flag = True
         if mode == "console":
             self.input_thread = self.input_thread_console
         elif mode == "serial":
             self.input_thread = self.input_thread_serial
 
             port = os.path.realpath(device)
-            self.serial0 = serial.Serial(port=port, baudrate=115200, timeout=1)
+            self.serial0 = serial.Serial(
+                port=port, baudrate=115200, timeout=0.1, write_timeout=0.1
+            )
             print("Starting serial ...")
 
             if self.flag:
                 port_fwd = "/dev/ttyACM0"
-                if port[-1] == "0":
+                if device[-1] == "0":
                     port_fwd = port_fwd[:-1] + "1"
 
                 self.serial_forward = serial.Serial(
-                    port=port_fwd, baudrate=115200, timeout=1, write_timeout=0.1
+                    port=port_fwd, baudrate=115200, timeout=0.1, write_timeout=0.1
                 )
                 print("Started forwarding serial ...")
 
@@ -50,6 +52,24 @@ class Parser:
             target=self.input_thread, args=(self.cam,), daemon=True
         )
         self.thread.start()
+
+        if self.flag:
+            self.reverse_fwd_thread = threading.Thread(
+                target=self._reverse_forward_thread, daemon=True
+            )
+            self.reverse_fwd_thread.start()
+
+    def _reverse_forward_thread(self):
+        while self.running:
+            try:
+                to_read = self.serial_forward.in_waiting or 1
+                data = self.serial_forward.read(to_read)
+                if data:
+                    self.serial0.write(data)
+            except serial.SerialTimeoutException:
+                pass
+            except Exception:
+                pass
 
     def _handle_console_command(self, cam, cmd):
         parts = cmd.strip().lower().split()
@@ -84,7 +104,7 @@ class Parser:
         buffer = bytearray(8)
         view = memoryview(buffer)
 
-        while True:
+        while self.running:
             # read directly into buffer (FAST)
             n = self.serial0.readinto(view[write_pos:])
             if not n:
@@ -106,11 +126,14 @@ class Parser:
                     calc_checksum ^= b
 
                 if calc_checksum != chunk[3]:
-                    i += 1  
+                    i += 1
                     continue
 
                 if self.flag:
-                    self.serial_forward.write(chunk)
+                    try:
+                        self.serial_forward.write(chunk)
+                    except serial.SerialTimeoutException:
+                        pass
 
                 packet_data = FMT.unpack(chunk)
 
@@ -126,10 +149,8 @@ class Parser:
     def _handle_serial_command(self, cam, cmd):
 
         (header, name, additional, checksum, value) = cmd
-        # print((name, additional))
         match (name, additional):
             case (NAME.MOVE.value, x):
-                # print(f"moving camera {x} {value}")
                 cam.move(additional, value)
             case (NAME.STOP, _):
                 cam.stop()
@@ -138,6 +159,6 @@ class Parser:
         self._read_packets()
 
     def input_thread_console(self, camera):
-        while True:
+        while self.running:
             command = input()
             self._handle_console_command(camera, command)
