@@ -16,13 +16,12 @@ class Drone:
         self.current_check_point = 0
         self.sim = sim
         self.check_points = []
-        for i in range(10):
-            if i%2:
-                self.check_points.append((300, 1400+i*60, 200, 7))
+        for i in range(5):
+            if i % 2:
+                self.check_points.append((300, 1400 + i * 60, 500, 10))
             else:
-                self.check_points.append((1800, 1400+i*60, 200, 7))
+                self.check_points.append((1300, 1400 + i * 60, 200, 10))
 
-        
         self.GpsHandler = GpsHandler()
 
     @property
@@ -77,7 +76,7 @@ class Drone:
                 (next_checkpoint[1] - last_checkpoint[1]) / next_checkpoint[3],
                 (next_checkpoint[2] - last_checkpoint[2]) / next_checkpoint[3],
             ]
-            print(v[0])
+            # print(v[0])
             axies = [0, 1, 2]
             not_at_goal = True
             while axies != []:
