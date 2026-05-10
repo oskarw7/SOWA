@@ -34,8 +34,8 @@ emulate_serial_connection_socat_cmd = [
     "-d",
     "-d",
     "-x",
-    "PTY,link=/tmp/virt,raw",
-    "PTY,link=/tmp/virt2,raw",
+    "PTY,link=/tmp/virt,raw,echo=0",
+    "PTY,link=/tmp/virt2,raw,echo=0",
 ]
 
 
