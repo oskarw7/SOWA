@@ -3,9 +3,10 @@
 // ============================================================================
 #pragma once
 
-#include <string>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/serial_port.hpp>
+#include <string>
+
 #include "sowa-lib/helpers.hpp"
 
 using std::string;
@@ -19,7 +20,6 @@ class Serial {
   Serial(string portName, unsigned int baudRate);
   ~Serial();
 
-  void send(packet_t p);
-
-  void receive(packet_t* p);
+  void send(packet_t p) const;
+  void receive(packet_t* p) const;
 };
