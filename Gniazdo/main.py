@@ -1,3 +1,4 @@
+import logging
 import queue
 import subprocess
 import sys
@@ -89,6 +90,12 @@ class Simulation:
     def gps_server(self):
         app = Flask(__name__)
 
+        app.logger.disabled = True
+
+        log = logging.getLogger("werkzeug")
+        log.disabled = True
+        log.setLevel(logging.ERROR)
+
         @app.route("/")
         def home():
             return self.Drone.get_current_nema_gps_message()
@@ -109,7 +116,6 @@ class Simulation:
 
             if not self.args.ext_detection:
                 self.q.put((-offset[0], offset[1]))
-                # self.Parser.serial0.write(self.Drone.get_current_nema_gps_message())
 
             # print((offset[0], offset[1]))
             # print([x-y for x,y in zip(cam.orientation, cam.orientation_target) ], cam._resolve_orientation(), offset )
