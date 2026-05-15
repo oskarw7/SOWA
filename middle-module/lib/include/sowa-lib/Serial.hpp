@@ -20,6 +20,6 @@ class Serial {
   Serial(string portName, unsigned int baudRate);
   ~Serial();
 
-  void send(packet_t p) const;
-  void receive(packet_t* p) const;
+  void send(packet_t p);
+  void receive(packet_t* p);
 };

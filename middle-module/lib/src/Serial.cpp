@@ -26,12 +26,12 @@ Serial::Serial(string portName, unsigned int baudRate)
 
 Serial::~Serial() { this->port.close(); }
 
-void Serial::send(packet_t p) const {
+void Serial::send(packet_t p) {
   calculate_checksum(&p);
   this->port.write_some(ba::buffer(&p, sizeof(packet_t)));
 }
 
-void Serial::receive(packet_t* p) const {
+void Serial::receive(packet_t* p) {
   uint8_t sync_byte = 0;
 
   while (true) {
