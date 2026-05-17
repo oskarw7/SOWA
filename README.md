@@ -3,7 +3,6 @@
 [![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-082e79?logo=ultralytics&logoColor=white)](https://docs.ultralytics.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.11.0-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
 [![Jetson](https://img.shields.io/badge/Hardware-Nvidia%20Jetson-76B900?logo=nvidia&logoColor=white)](https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/)
-[![Arduino](https://img.shields.io/badge/Hardware-Arduino_Uno-00979d?logo=arduino&logoColor=white)](https://www.arduino.cc/)
 [![ESP32](https://img.shields.io/badge/Hardware-ESP32-e7352c?logo=espressif&logoColor=white)](https://www.espressif.com/en/products/socs/esp32)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
 
