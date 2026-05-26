@@ -20,11 +20,11 @@ FMT = struct.Struct(FORMAT)
 
 
 class Parser:
-    def __init__(self, cam, mode="console", device="/tmp/virt", flag=False):
+    def __init__(self, cam, mode="console", device="/tmp/virt", flag=None):
 
         self.running = False
         self.cam = cam
-        self.flag = True
+        self.flag = flag
         if mode == "console":
             self.input_thread = self.input_thread_console
         elif mode == "serial":
@@ -36,7 +36,7 @@ class Parser:
             )
             print("Starting serial ...")
 
-            if self.flag:
+            if flag is not None and flag:
                 port_fwd = "/dev/ttyACM0"
                 if device[-1] == "0":
                     port_fwd = port_fwd[:-1] + "1"
@@ -53,7 +53,7 @@ class Parser:
         )
         self.thread.start()
 
-        if self.flag:
+        if self.flag is not None and self.flag:
             self.reverse_fwd_thread = threading.Thread(
                 target=self._reverse_forward_thread, daemon=True
             )

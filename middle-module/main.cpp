@@ -22,9 +22,11 @@ using std::chrono::steady_clock;
 
 int main() {
   // Controller controller("/dev/ttyGS0", kBaudRate, true);
-  Controller controller("/tmp/virt2", kBaudRate);
+  Controller controller("/tmp/virt2", kBaudRate,true);
 
   std::this_thread::sleep_for(std::chrono::seconds(2));  // wait for parser init
+
+  
 
   if (!controller.init_device()) {
     std::cout << "Failed to init device!\n";
