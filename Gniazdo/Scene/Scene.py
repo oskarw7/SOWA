@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import threading
-import math
 class Scene():
     def __init__(self,sim):
         self.image = cv2.imread("./bernd-dittrich-j5pUj4Kmg_Q-unsplash.jpg")
@@ -14,6 +13,7 @@ class Scene():
         self._last_blit_x = None
         self._last_blit_y = None
         self._last_blit_w = None
+        self._last_wrap_w = None
         self._last_blit_h = None
         self._is_Extended = False
         self._extension_pixels = 0
@@ -43,74 +43,82 @@ class Scene():
 
 
 
-    def overlay_image(self, overlay, x, y,z):
-        x += overlay.shape[0]/2
-        y += overlay.shape[1]/2
+    def overlay_image(self, overlay, x, y, _z):
+        x += overlay.shape[1] / 2
+        y += overlay.shape[0] / 2
         x = int(x) % self.image_width
         y = int(y)
-        #             x+w < sciana  pelen obrazek tu i tu   |     x mniejsze      |      
-        with self.lock:
-            
-            if self._last_blit_x:
-                self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self._last_blit_x:self._last_blit_x+self._last_blit_w] = self._under_last_blit
-                if self._last_blit_x + self._last_blit_w< self._extension_pixels :
 
-                    self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self.image_width + self._last_blit_x:self.image_width + self._last_blit_x+self._last_blit_w] = self._under_last_blit
-                elif self._last_blit_x < self._extension_pixels:
-                    shrinked_w = self._extension_pixels - self._last_blit_x
-                    self.image[self._last_blit_y:self._last_blit_y+self._last_blit_h,self.image_width + self._last_blit_x:self.image_width + self._last_blit_x+ shrinked_w] = self._under_last_blit[:,:shrinked_w]
-
-            h, w = overlay.shape[:2]
-
-            # Frame boundaries
-            fh, fw = self.image_height,self.image_width 
-
-            # Clip overlay if it goes outside frame
-            if x >= fw or y >= fh:
-                return  # completely outside
-
-            w = min(w, fw - x)
-            h = min(h, fh - y)
-
-            overlay = overlay[:h, :w]
-
-            roi = self.image[y:y+h, x:x+w]
-
-
-            if overlay.shape[2] == 4:
-                overlay_rgb = overlay[:, :, :3].astype(float)
-                alpha = overlay[:, :, 3:] / 255.0
+        def blend(src, dst):
+            if src.shape[2] == 4:
+                overlay_rgb = src[:, :, :3].astype(float)
+                alpha = src[:, :, 3:] / 255.0
             else:
-                overlay_rgb = overlay.astype(float)
+                overlay_rgb = src.astype(float)
                 alpha = 1.0
+            roi_float = dst.astype(float)
+            return (alpha * overlay_rgb + (1 - alpha) * roi_float).astype("uint8")
 
-            roi_float = roi.astype(float)
+        with self.lock:
+            if self._under_last_blit is not None:
+                self.image[
+                    self._last_blit_y : self._last_blit_y + self._last_blit_h,
+                    self._last_blit_x : self._last_blit_x + self._last_blit_w,
+                ] = self._under_last_blit["main"]
+                if self._under_last_blit.get("extended") is not None:
+                    self.image[
+                        self._last_blit_y : self._last_blit_y + self._last_blit_h,
+                        self.image_width + self._last_blit_x : self.image_width + self._last_blit_x + self._last_blit_w,
+                    ] = self._under_last_blit["extended"]
+                self._under_last_blit = None
 
-            blended = alpha * overlay_rgb + (1 - alpha) * roi_float
-            self._under_last_blit = self.image[y:y+h, x:x+w].copy()
+            fh, fw = self.image_height, self.image_width
+            if y >= fh or y + overlay.shape[0] <= 0:
+                return
+
+            h = min(overlay.shape[0], fh - y)
+            if h <= 0:
+                return
+            overlay = overlay[:h, :]
+
+            main_w = min(overlay.shape[1], fw - x)
+            wrap_w = max(0, overlay.shape[1] - main_w)
+
+            overlay_main = overlay[:, :main_w]
+            overlay_wrap = overlay[:, main_w : main_w + wrap_w] if wrap_w > 0 else None
+
+            under_main = self.image[y : y + h, x : x + main_w].copy()
+            # Backup extended region (for duplication/wrapping)
+            under_extended = None
+            if main_w <= self._extension_pixels - x:
+                under_extended = self.image[
+                    y : y + h,
+                    self.image_width + x : self.image_width + x + main_w,
+                ].copy()
+
+            self._under_last_blit = {"main": under_main, "extended": under_extended}
             self._last_blit_x = x
             self._last_blit_y = y
-            self._last_blit_w = w
+            self._last_blit_w = main_w
             self._last_blit_h = h
-            self.image[y:y+h, x:x+w] = blended.astype("uint8")
-            if x + w < self._extension_pixels :
-                self.image[y:y+h, self.image_width + x: self.image_width + x +w] = blended.astype("uint8")
-            elif x < self._extension_pixels:
-                w = self._extension_pixels - x
-                overlay = overlay[:h, w:]
 
-                roi = self.image[y:y+h, x:x+w]
+            # Blend main overlay
+            self.image[y : y + h, x : x + main_w] = blend(
+                overlay_main, self.image[y : y + h, x : x + main_w]
+            )
+            # Duplicate to extended region if entire main part fits within extension range
+            if main_w <= self._extension_pixels - x:
+                self.image[
+                    y : y + h,
+                    self.image_width + x : self.image_width + x + main_w,
+                ] = self.image[y : y + h, x : x + main_w]
+            
+            # Handle wrap-around overflow
+            if wrap_w > 0:
+                self.image[
+                    y : y + h,
+                    self.image_width : self.image_width + wrap_w,
+                ] = blend(overlay_wrap, self.image[y : y + h, self.image_width : self.image_width + wrap_w])
 
-
-                if overlay.shape[2] == 4:
-                    overlay_rgb = overlay[:, :, :3].astype(float)
-                    alpha = overlay[:, :, 3:] / 255.0
-                else:
-                    overlay_rgb = overlay.astype(float)
-                    alpha = 1.0
-
-                roi_float = roi.astype(float)
-
-                blended = alpha * overlay_rgb + (1 - alpha) * roi_float     
                           
                 

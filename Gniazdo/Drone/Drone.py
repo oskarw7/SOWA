@@ -15,12 +15,13 @@ class Drone:
         self.lock = threading.Lock()
         self.current_check_point = 0
         self.sim = sim
-        self.check_points = []
-        for i in range(5):
-            if i % 2:
-                self.check_points.append((300, 1400 + i * 60, 500, 10))
-            else:
-                self.check_points.append((1300, 1400 + i * 60, 200, 10))
+        self.check_points = [(300,1800,500,13),(300,1400,500,10),(1300,1800,500,12),(1300,1400,500,10)]
+        # ,(2000,1800,400,10), (3300,1400,300,10)]
+        # for i in range(5):
+        #     if i % 2:
+        #         self.check_points.append((300, 1400 + i * 60, 500, 10))
+        #     else:
+        #         self.check_points.append((1300, 1400 + i * 60, 200, 10))
 
         self.GpsHandler = GpsHandler()
 
