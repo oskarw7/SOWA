@@ -27,5 +27,5 @@ test:
     -L/opt/nvidia/deepstream/deepstream/lib \
     -lnvdsgst_meta -lnvds_meta \
     -Wl,-rpath,/opt/nvidia/deepstream/deepstream/lib
-  -./test config_infer_main.txt rtsp://192.168.1.14:8554/live.stream
+  -./test config_infer_main.txt rtsp://admin:admin1234@192.168.5.190:554/main
   rm test

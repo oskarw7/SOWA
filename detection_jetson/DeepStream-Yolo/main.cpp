@@ -5,10 +5,10 @@
 #include "nvdsmeta.h"
 #include "gstnvdsmeta.h"
 
-// #define SOURCE "rtsp://admin:admin1234@192.168.5.190:554/main"
-#define SOURCE "rtsp://192.168.1.14:8554/live.stream"
-#define FRAME_WIDTH 1920 //3840
-#define FRAME_HEIGHT 1080 //2160
+//#define SOURCE "rtsp://admin:admin1234@192.168.5.190:554/main"
+#define SOURCE "rtsp://172.20.10.6:8554/live.stream"
+#define FRAME_WIDTH 1920
+#define FRAME_HEIGHT 1080
 
 // Comment out to hide the FPS counter
 // #define SHOW_FPS
@@ -67,12 +67,12 @@ static GstPadProbeReturn probe(GstPad *pad, GstPadProbeInfo *info, gpointer u_da
             NvDsObjectMeta *objMeta = (NvDsObjectMeta *)(lObj->data);
             
             // Calculate offsets from the image center to the object center
-            float offsetX = (objMeta->rect_params.left + objMeta->rect_params.width / 2.0) - centerX;
-            float offsetY = (-1.0)*((objMeta->rect_params.top + objMeta->rect_params.height / 2.0) - centerY);
+            int offsetX = (objMeta->rect_params.left + objMeta->rect_params.width / 2.0) - centerX;
+            int offsetY = (-1.0)*((objMeta->rect_params.top + objMeta->rect_params.height / 2.0) - centerY);
 
-            // printf("DATA|ID:%lu|CLS:%d|CONF:%.2f|X:%.1f|Y:%.1f\n", objMeta->object_id, objMeta->class_id, objMeta->confidence, offsetX, offsetY);
+//            printf("DATA|ID:%lu|CLS:%d|CONF:%.2f|X:%.1f|Y:%.1f\n", objMeta->object_id, objMeta->class_id, objMeta->confidence, offsetX, offsetY);
             printf("%d %d\n", static_cast<int>(offsetX), static_cast<int>(offsetY));
-            outputPipeToMm << static_cast<int>(offsetX) << " " << static_cast<int>(offsetY) << "\n";
+            outputPipeToMm << offsetX << " " << offsetY << "\n";
             outputPipeToMm.flush();
         }
     }

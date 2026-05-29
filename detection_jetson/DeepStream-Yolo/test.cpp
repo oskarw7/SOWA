@@ -2,11 +2,12 @@
 #include <glib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <fstream>
 #include "nvdsmeta.h"
 #include "gstnvdsmeta.h"
 
-#define FRAME_WIDTH 3840
-#define FRAME_HEIGHT 2160
+#define FRAME_WIDTH 1920 //3840
+#define FRAME_HEIGHT 1080 //2160
 
 // Comment out to hide the FPS counter
 #define SHOW_FPS
@@ -18,6 +19,8 @@ static gint64 startTime = 0;
 
 // Global pointer to the main loop to allow the signal handler to stop it
 static GMainLoop *mainLoop = NULL;
+
+//std::ofstream outputPipeToMm("/tmp/rura");
 
 // Signal handler function for the SIGINT signal
 static void handleInterrupt(int sig) {
@@ -64,10 +67,14 @@ static GstPadProbeReturn probe(GstPad *pad, GstPadProbeInfo *info, gpointer u_da
         for (NvDsMetaList *lObj = frameMeta->obj_meta_list; lObj != NULL; lObj = lObj->next) {
             NvDsObjectMeta *objMeta = (NvDsObjectMeta *)(lObj->data);
             
-            // Calculate pixel offset from frame center to object center
+             // Calculate offsets from the image center to the object center
             float offsetX = (objMeta->rect_params.left + objMeta->rect_params.width / 2.0) - centerX;
-            float offsetY = (objMeta->rect_params.top + objMeta->rect_params.height / 2.0) - centerY;
+            float offsetY = (-1.0)*((objMeta->rect_params.top + objMeta->rect_params.height / 2.0) - centerY);
 
+            // printf("DATA|ID:%lu|CLS:%d|CONF:%.2f|X:%.1f|Y:%.1f\n", objMeta->object_id, objMeta->class_id, objMeta->confidence, offsetX, offsetY);
+            //printf("%d %d\n", static_cast<int>(offsetX), static_cast<int>(offsetY));
+            //outputPipeToMm << static_cast<int>(offsetX) << " " << static_cast<int>(offsetY) << "\n";
+            //outputPipeToMm.flush();
             // printf("DATA|ID:%lu|CLS:%d|CONF:%.2f|X:%.1f|Y:%.1f\n", objMeta->object_id, objMeta->class_id, objMeta->confidence, offsetX, offsetY);
         }
     }
