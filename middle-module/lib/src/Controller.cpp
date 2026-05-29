@@ -13,8 +13,8 @@
 #include "sowa-lib/Serial.hpp"
 #include "sowa-lib/helpers.hpp"
 
-constexpr float kHScaling = (1920.0 / 8192.0 * 360.0) / 1920.0;
-constexpr float KVScaling = (1080.0 / (4096.0 - 1080) * 180.0) / 1080.0;
+constexpr float kHScaling = 44.0/3840; // (1920.0 / 8192.0 * 360.0) / 1920.0;
+constexpr float KVScaling = 25.0/2160; // (1080.0 / (4096.0 - 1080) * 180.0) / 1080.0;
 
 constexpr float kHMoveThreshold = 0.5;
 constexpr float kVMoveThreshold = 1.5;
@@ -33,7 +33,7 @@ Controller::Controller(std::string dev, const unsigned int baudRate)
 Controller::Controller(std::string dev, const unsigned int baudRate, bool t)
     : serial(std::make_unique<Serial>(dev, baudRate)),
       testing_mode(t),
-      device_coordinates({51, 51, 0}) {}
+      device_coordinates({54.412778, 18.604617, 0}) {}
 
 bool Controller::init_device() const {
   if (testing_mode) {
@@ -59,6 +59,7 @@ void Controller::new_move(direction dir, float deg) const {
        deg <= kHMoveThreshold)) {
     return;
   }
+  std::cout << "ruszam sie" << std::endl;
 
   packet_t pack{kHeader, name::move, dir, 0, deg};
   serial->send(pack);
@@ -69,7 +70,6 @@ void Controller::new_detection(int x, int y) const {
   float degrees_y = abs(static_cast<float>(y * KVScaling));
 
   new_move(x > 0 ? direction::right : direction::left, degrees_x);
-
   new_move(y > 0 ? direction::up : direction::down, degrees_y);
 }
 
@@ -83,7 +83,6 @@ void Controller::new_gps_data(float lat, float lon, float alt) const {
   serial->send(pack);
 
   packet_t response[2];
-
   serial->receive(&response[0]);
   serial->receive(&response[1]);
 
