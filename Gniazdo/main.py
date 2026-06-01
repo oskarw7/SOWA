@@ -4,7 +4,7 @@ import subprocess
 import sys
 import threading
 from time import sleep
-
+import paramiko
 from Camera import Camera
 from Drone import Drone
 from flask import Flask
@@ -12,6 +12,9 @@ from helpers import *
 from Parser import InitArgsParser, Parser
 from Scene import Scene
 
+host = "192.168.5.189"
+username = "sowa"
+password = "1234"
 
 class Simulation:
     def __init__(self):
@@ -86,6 +89,36 @@ class Simulation:
 
         self.Drone.start()
         self.Camera.inject_tracked_obj(self.Drone)
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            client.connect(
+                hostname=host,
+                username=username,
+                password=password,
+                timeout=10
+            )
+
+            stdin, stdout, stderr = client.exec_command(
+                "cd /home/sowa/SOWA/detection_jetson/DeepStream-Yolo && nohup just run &"
+            )
+            sleep(1)
+            stdin, stdout, stderr = client.exec_command(
+                "cd /home/sowa/SOWA/mujfolder && nohup sudo make run &"
+            )
+
+            print("Output:")
+            print(stdout.read().decode())
+
+            print("Errors:")
+            print(stderr.read().decode())
+
+        finally:
+            client.close()
+
+
 
     def gps_server(self):
         app = Flask(__name__)
