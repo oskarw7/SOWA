@@ -53,11 +53,11 @@ class Camera:
         match direction:
             case DIRECTION.RIGHT:
                 self.orientation_target[0] = (
-                    self._current_position_delayed[0] + deg
+                    self._current_position_delayed[0] - deg
                 ) % 360
             case DIRECTION.LEFT:
                 self.orientation_target[0] = (
-                    self._current_position_delayed[0] - deg
+                    self._current_position_delayed[0] + deg
                 ) % 360
             case DIRECTION.UP:
                 self.orientation_target[1] = (

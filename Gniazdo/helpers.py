@@ -73,17 +73,13 @@ class SSHManager:
 
     def run_commands(self):
         commands = [
-            "cd /home/sowa/SOWA/detection_jetson/DeepStream-Yolo && nohup just run > deepstream.log 2>&1 &",
-            "cd /home/sowa/SOWA/mujfolder && nohup sudo -S make run > make.log 2>&1 &"
+        "cd /home/sowa/SOWA/mujfolder && ./run.sh "
         ]
 
         for cmd in commands:
             stdin, stdout, stderr = self.client.exec_command(cmd)
-
-            # if sudo needs password:
-            if "sudo" in cmd:
-                stdin.write(self.password + "\n")
-                stdin.flush()
+            stdout.read().decode()
+   
 
     def close(self):
         if self.client:

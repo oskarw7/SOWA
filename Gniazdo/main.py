@@ -1,4 +1,5 @@
 import logging
+import cv2
 import queue
 import subprocess
 import sys
@@ -22,12 +23,10 @@ class Simulation:
         self.Parser = None
         self.Subprocesses = []
         self.args = InitArgsParser.arg_parser.parse_args()
-
+        self.ssh = SSHManager("192.168.5.189","sowa", "12345")
     def start_remote_processes(self):
-        ssh = SSHManager(host, username, password)
-        ssh.connect()
-        ssh.run_commands()
-        ssh.close()
+        self.ssh.connect()
+        self.ssh.run_commands()
 
     def init_simulation(self):
         self.Scene = Scene.Scene(self)
@@ -77,6 +76,7 @@ class Simulation:
         parser.start()
 
         frame = self.Camera.get_frame()
+
         self.Streamer.stdin.write(frame.tobytes())
         if self.args.visualize:
             self.Player = subprocess.Popen(
@@ -136,6 +136,7 @@ sim.init_simulation()
 try:
     sim.start()
 except KeyboardInterrupt:
+    sim.ssh.close()
     for process in sim.Subprocesses:
         process.kill()
         outs, errs = process.communicate()
