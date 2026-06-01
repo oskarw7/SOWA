@@ -12,9 +12,7 @@ from helpers import *
 from Parser import InitArgsParser, Parser
 from Scene import Scene
 
-host = "192.168.5.189"
-username = "sowa"
-password = "1234"
+
 
 class Simulation:
     def __init__(self):
@@ -24,6 +22,12 @@ class Simulation:
         self.Parser = None
         self.Subprocesses = []
         self.args = InitArgsParser.arg_parser.parse_args()
+
+    def start_remote_processes(self):
+        ssh = SSHManager(host, username, password)
+        ssh.connect()
+        ssh.run_commands()
+        ssh.close()
 
     def init_simulation(self):
         self.Scene = Scene.Scene(self)
@@ -86,38 +90,10 @@ class Simulation:
                 stderr=subprocess.DEVNULL,
             )
             self.Subprocesses.append(self.Player)
-
         self.Drone.start()
         self.Camera.inject_tracked_obj(self.Drone)
 
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        try:
-            client.connect(
-                hostname=host,
-                username=username,
-                password=password,
-                timeout=10
-            )
-
-            stdin, stdout, stderr = client.exec_command(
-                "cd /home/sowa/SOWA/detection_jetson/DeepStream-Yolo && nohup just run &"
-            )
-            sleep(1)
-            stdin, stdout, stderr = client.exec_command(
-                "cd /home/sowa/SOWA/mujfolder && nohup sudo make run &"
-            )
-
-            print("Output:")
-            print(stdout.read().decode())
-
-            print("Errors:")
-            print(stderr.read().decode())
-
-        finally:
-            client.close()
-
+        threading.Thread(target=self.start_remote_processes, daemon=True).start()
 
 
     def gps_server(self):

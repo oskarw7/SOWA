@@ -1,3 +1,6 @@
+import paramiko
+
+
 width, height = 1920, 1080
 fps = 24
 
@@ -49,3 +52,39 @@ def sender(q):
             if x != -1:
                 rura.write(f"{int(x)} {int(y)}\n")
                 rura.flush()
+
+class SSHManager:
+    def __init__(self, host, username, password):
+        self.host = host
+        self.username = username
+        self.password = password
+        self.client = None
+
+    def connect(self):
+        self.client = paramiko.SSHClient()
+        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        self.client.connect(
+            hostname=self.host,
+            username=self.username,
+            password=self.password,
+            timeout=10
+        )
+
+    def run_commands(self):
+        commands = [
+            "cd /home/sowa/SOWA/detection_jetson/DeepStream-Yolo && nohup just run > deepstream.log 2>&1 &",
+            "cd /home/sowa/SOWA/mujfolder && nohup sudo -S make run > make.log 2>&1 &"
+        ]
+
+        for cmd in commands:
+            stdin, stdout, stderr = self.client.exec_command(cmd)
+
+            # if sudo needs password:
+            if "sudo" in cmd:
+                stdin.write(self.password + "\n")
+                stdin.flush()
+
+    def close(self):
+        if self.client:
+            self.client.close()
