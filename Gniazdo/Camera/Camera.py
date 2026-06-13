@@ -4,6 +4,8 @@ from time import monotonic, sleep
 
 import cv2
 
+DELAY_IN_STEPPER = 0.0001
+
 
 class Frame:
     def __init__(self, width=1920, height=1080):
@@ -28,10 +30,11 @@ class STOP(IntEnum):
 class Camera:
     out_of_frame_counter = 0
 
-    def __init__(self, scene, auto_reset=False):
+    def __init__(self, sim, auto_reset=False):
         self.orientation = [0, 90]
+        self.sim = sim
         self.orientation_target = self.orientation.copy()
-        self.scene = scene
+        self.scene = sim.Scene
         self.frame = Frame()
         self.a = [20, 20]
         self.v = [0, 0]
@@ -40,22 +43,30 @@ class Camera:
         self.running = False
         self.auto_reset = auto_reset
         self.scene.extend_image_for_fast_wrap(self.frame.width)
-        self.tracked_obj = None 
+        self.tracked_obj = None
+        self._current_position_delayed = None
 
     def inject_tracked_obj(self, obj):
         self.tracked_obj = obj
 
     def move(self, direction: int, deg: int) -> None:
         match direction:
-
-            case DIRECTION.LEFT:
-                self.orientation_target[0] = (self.orientation[0] + deg) % 360
             case DIRECTION.RIGHT:
-                self.orientation_target[0] = (self.orientation[0] - deg) % 360
+                self.orientation_target[0] = (
+                    self._current_position_delayed[0] - deg
+                ) % 360
+            case DIRECTION.LEFT:
+                self.orientation_target[0] = (
+                    self._current_position_delayed[0] + deg
+                ) % 360
             case DIRECTION.UP:
-                self.orientation_target[1] = (self.orientation[1] - deg) % 180
+                self.orientation_target[1] = (
+                    self._current_position_delayed[1] - deg
+                ) % 180
             case DIRECTION.DOWN:
-                self.orientation_target[1] = (self.orientation[1] + deg) % 180
+                self.orientation_target[1] = (
+                    self._current_position_delayed[1] + deg
+                ) % 180
 
     def stop(self) -> None:
         with self.lock:
@@ -63,7 +74,7 @@ class Camera:
             self.v = [0, 0]
 
     def move_horizontal(self, deg: int) -> None:
-        self.orientation[0] = (self.orientation[0] + deg) % 360
+        self.orientation[0] = (self.orientation[0] - deg) % 360
 
     def move_vertical(self, deg: int) -> None:
         self.orientation_target[1] = (self.orientation[1] + deg) % 180
@@ -88,10 +99,11 @@ class Camera:
         # print(f"{self.b_x=}, {self.b_y=}")
         return [self.b_x, self.b_y]
 
+    def _calculate_offset(self, coords1, coords2):
+        diff_x = (coords1[0] - coords2[0]) % self.scene.image_width
+        diff_y = (coords1[1] - coords2[1]) % self.scene.image_height
 
-    def _calculate_offset(self,coords1, coords2) -> [int,int]:
-        return [(x - y )% self.scene.image_width  for x,y in zip(coords1,coords2)]
-
+        return [int(diff_x), int(diff_y)]
 
     def get_frame_resolve_drone_offset(self, drone_position) -> ([], [int, int]):
         frame_position = self._resolve_orientation()
@@ -99,14 +111,9 @@ class Camera:
         frame0 = self.scene.get_frame(
             self.b_x, self.b_y, self.frame.width, self.frame.height
         )
-        offset = self._calculate_offset(drone_position,frame_position)
+        offset = self._calculate_offset(drone_position, frame_position)
         for axis in range(2):
-            # offset.append((drone_position[axis] - frame_position[axis]) % self.scene.image_width)
-            # print(drone_position, frame_position, offset)
-            if (
-                offset[axis] >= self.frame.shape[axis]
-                or offset[axis] < 0
-            ):
+            if offset[axis] >= self.frame.shape[axis] or offset[axis] < 0:
                 Camera.out_of_frame_counter += 1
                 return (frame0, [-1, -1])
         Camera.out_of_frame_counter = 0
@@ -170,15 +177,30 @@ class Camera:
 
     def _loop(self, fps):
         timestamp = monotonic()
+        delay_counter = 0
         while self.running:
             dt = monotonic() - timestamp
+            delay_counter += dt
+            if delay_counter > DELAY_IN_STEPPER:
+                delay_counter = 0
+                self._current_position_delayed = self.orientation
             self._move_camera(dt)
-            if  self.auto_reset and Camera.out_of_frame_counter > 24 * 5 :
-                centered_offset = [x - y / 2  for x, y in zip(self.tracked_obj.position, self.frame.shape)]
+            if self.auto_reset and Camera.out_of_frame_counter > 24 * 5:
+                centered_offset = [
+                    x - y / 2
+                    for x, y in zip(self.tracked_obj.position, self.frame.shape)
+                ]
                 with self.lock:
-                    self.orientation = [x/y * z for x,y,z in zip(centered_offset,[self.scene.image_width,self.scene.image_height],[360,180])]
+                    self.orientation = [
+                        x / y * z
+                        for x, y, z in zip(
+                            centered_offset,
+                            [self.scene.image_width, self.scene.image_height],
+                            [360, 180],
+                        )
+                    ]
                 # print(centered_offset, self.tracked_obj.position, self._resolve_orientation())
-                Camera.out_of_frame_counter=0
+                Camera.out_of_frame_counter = 0
             timestamp = monotonic()
             sleep(0.001)
 

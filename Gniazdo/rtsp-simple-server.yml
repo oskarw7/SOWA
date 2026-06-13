@@ -1,4 +1,4 @@
-protocols: [tcp,udp]
+protocols: [tcp, udp]
 paths:
   all:
     source: publisher

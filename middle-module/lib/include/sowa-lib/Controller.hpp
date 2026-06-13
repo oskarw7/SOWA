@@ -3,14 +3,14 @@
 // ============================================================================
 #pragma once
 
+#include <boost/geometry.hpp>
+#include <boost/qvm/all.hpp>
 #include <memory>
 #include <string>
+
 #include "sowa-lib/Serial.hpp"
-#include <boost/qvm/all.hpp>
-#include <boost/geometry.hpp>
 
 using boost::qvm::vec;
-
 
 class Controller {
  private:
@@ -24,6 +24,6 @@ class Controller {
   Controller(std::string dev, const unsigned int baudRate, bool t);
 
   bool init_device() const;
-  void new_detection(int x, int y);
+  void new_detection(int x, int y) const;
   void new_gps_data(float lat, float lon, float alt) const;
 };
