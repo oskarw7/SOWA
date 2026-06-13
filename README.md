@@ -1,4 +1,5 @@
-# SOWA
+![logo](https://drive.google.com/uc?export=view&id=18_huUnP8kr6bEUsrmvbKbSnZ9zv0W_SC)
+
 [![Python](https://img.shields.io/badge/python-3.13-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Ultralytics](https://img.shields.io/badge/Ultralytics-YOLO-082e79?logo=ultralytics&logoColor=white)](https://docs.ultralytics.com/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.11.0-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
@@ -35,6 +36,8 @@ SOWA is a complete, portable autonomous tracking system designed to maintain a s
 - **Modular & testable** — a built-in simulation environment (Gniazdo) generates synthetic RTSP streams so every module can be developed and validated independently, without physical hardware.
  
 The project was selected as a finalist and recieved a honorable mention in the nationwide **IT is ME Student Innovation Competition** organized by AGH University of Kraków (May 2026).
+
+![product](https://drive.google.com/uc?export=view&id=160hVvnYBe09-R68OZMG0LiXCIbEty_Yd)
  
 ---
 
@@ -95,6 +98,8 @@ The directional antenna mounted on the system was compared against a reference o
 * **Directional antenna signal range:** stable reception up to 90 m; signal still observed at 120 m.
 * **Omnidirectional antenna signal range:** signal lost at ~15 m.
 * **SOWA wins:** The system successfully overcomes the fundamental advantage of omnidirectional antennas by keeping the directional antenna continuously pointed at the target. The tracking and communication ranges are well-balanced with no bottlenecks.
+
+![spectrum](https://drive.google.com/uc?export=view&id=1uOBcAx1nSi-fdY2meESXUIhddjS3gbYo)
 
 ---
 
