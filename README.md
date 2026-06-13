@@ -109,7 +109,10 @@ The directional antenna mounted on the system was compared against a reference o
   <summary>Gallery</summary>
 
   ### Detection Module
-  ![detection](https://drive.google.com/uc?export=view&id=1YoXf2ZV2ZGZMKBD5Lw5D1eoEN8Btz77M)
+  
+<p align="center">
+   <img src="https://drive.google.com/uc?export=view&id=1-m6CVnaXWLUwfofO4aJCarpE38-R8Dhp" width="600">
+</p>
 
   ---
 
