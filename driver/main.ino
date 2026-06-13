@@ -213,7 +213,7 @@ void setup() {
   packet.value = 0.0;
   calculate_checksum(&packet);
 
-  Serial.write((byte*)&packet, sizeof(packet_t));
+  // Serial.write((byte*)&packet, sizeof(packet_t));
 }
 
 

@@ -15,28 +15,20 @@ typedef struct __attribute__((packed)) {
   float value;
 } packet_t;
 
-
-enum name {
+enum name : uint8_t {
   move,
   stop,
   reset_pos,
   restart_esp,
   esp_ok,
-  used
+  used,
+  get_current_pos,
+  current_pos
 };
 
-enum direction {
-  left,
-  right,
-  up,
-  down
-};
+enum direction { left, right, up, down };
 
-enum stop {
-  hor,
-  vert,
-  both
-};
+enum axis { hor, vert, both };
 
 void calculate_checksum(packet_t* p);
 
