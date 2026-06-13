@@ -16,14 +16,14 @@ constexpr uint16_t FULL_SPIN_DEG = 360;
 // Accelerations are expressed in [steps/s^2]
 constexpr uint8_t kHDirPin = 10;
 constexpr uint8_t kHPulPin = 11;
-constexpr float kHSpeed = 5000.0;
-constexpr float kHAccel = 1000.0;
+constexpr float kHSpeed = 1480.0;
+constexpr float kHAccel = 494.0;
 constexpr uint16_t kHStepsPerFullSpin = 6400;
 
 constexpr uint8_t kVDirPin = 12;
 constexpr uint8_t kVPulPin = 13;
-constexpr float kVSpeed = 5000.0;
-constexpr float kVAccel = 1000.0;
+constexpr float kVSpeed = 2290.0;
+constexpr float kVAccel = 764.0;
 constexpr uint16_t kVStepsPerFullSpin = 6400;
 
 // Movement constraints in degrees
@@ -53,10 +53,10 @@ class StepperHandler {
   float stepsPerDegree;
 
  public:
-  StepperHandler(FastAccelStepperEngine &eng, uint8_t stepPin,
-                float microsteps, float gearRatio) {
+  StepperHandler(FastAccelStepperEngine& eng, uint8_t stepPin, float microsteps,
+                 float gearRatio) {
     stepper = eng.stepperConnectToPin(stepPin);
-    stepsPerDegree = microsteps * gearRatio/ FULL_SPIN_DEG;
+    stepsPerDegree = microsteps * gearRatio / FULL_SPIN_DEG;
   }
 
   void init(float speed, float acceleration, uint8_t dirPin) {
@@ -65,60 +65,15 @@ class StepperHandler {
     stepper->setAcceleration(acceleration);
   }
 
-  bool canMove(float direction) {
-    if (stepper->getStepPin() == kVPulPin) {
-      float VPosDeg = stepper->getCurrentPosition() / stepsPerDegree;
-
-      if ((direction < 0 && VPosDeg <= kMaxDegreesDown) ||
-          (direction > 0 && VPosDeg >= kMaxDegreesUp)) {
-        return false;
-      }
-    }
-
-    return true;
+  void moveTo(float degrees, bool blocking = false) {
+    stepper->moveTo(static_cast<int32_t>(degrees * stepsPerDegree), blocking);
   }
 
-  void move(float degrees, bool blocking = false) {
-    if (!canMove(degrees)) {
-      return;
-    }
+  void stopMove() { stepper->stopMove(); }
 
-    stepper->move(static_cast<int32_t>(degrees * stepsPerDegree),
-                        blocking);
-  }
+  int32_t getCurrentPosition() { return stepper->getCurrentPosition(); }
 
-  float getStepsPerDegree() {
-    return stepsPerDegree;
-  }
-
-  void stopMove() {
-    stepper->stopMove();
-  }
-
-  int32_t getCurrentPosition() {
-    return stepper->getCurrentPosition();
-  }
-
-  uint32_t stepsToStop() {
-    return stepper->stepsToStop();
-  }
-
-  bool isRunning() {
-    return stepper->isRunning();
-  }
-
-  int8_t getMovementDirection() {
-    int32_t speed = stepper->getCurrentSpeedInUs();
-
-    if (speed == 0) {
-      return 0;
-    }
-    return speed > 0 ? 1 : -1;
-  }
-
-  bool isStopping() {
-    return stepper->isStopping();
-  }
+  float resolveCurrentAngle() { return getCurrentPosition() / stepsPerDegree; }
 
   void setCurrentPosition(int32_t newPos) {
     stepper->setCurrentPosition(newPos);
@@ -133,27 +88,20 @@ typedef struct __attribute__((packed)) {
   float value;
 } packet_t;
 
-enum name {
+enum name : uint8_t {
   move,
   stop,
   reset_pos,
   restart_esp,
   esp_ok,
-  used
+  used,
+  get_current_pos,
+  current_pos
 };
 
-enum direction {
-  left,
-  right,
-  up,
-  down
-};
+enum direction { left, right, up, down };
 
-enum stop {
-  hor,
-  vert,
-  both
-};
+enum axis { hor, vert, both };
 
 FastAccelStepperEngine g_engine = FastAccelStepperEngine();
 
@@ -161,24 +109,7 @@ StepperHandler* g_horizontal_motor = nullptr;
 StepperHandler* g_vertical_motor = nullptr;
 
 packet_t packet;
-
-void checkMovementConstraints() {
-  int32_t VStopPos =
-      (g_vertical_motor->getCurrentPosition() +
-      (g_vertical_motor->getMovementDirection() *
-      g_vertical_motor->stepsToStop()));
-
-  int8_t movementDir = g_vertical_motor->getMovementDirection();
-  float vert_SPD = g_vertical_motor->getStepsPerDegree();
-
-  if (g_vertical_motor->isRunning() && !g_vertical_motor->isStopping()) {
-    if (VStopPos <= kMaxDegreesDown * vert_SPD && movementDir == (-1)) {
-      g_vertical_motor->stopMove();
-    } else if (VStopPos >= kMaxDegreesUp * vert_SPD && movementDir == 1) {
-      g_vertical_motor->stopMove();
-    }
-  }
-}
+float targetOrientation[2]{0.0f, 0.0f};
 
 void calculate_checksum(packet_t* p) {
   p->checksum = p->additional ^ p->header ^ p->name;
@@ -195,6 +126,17 @@ bool check_checksum(packet_t p) {
   return checksum == p.checksum;
 }
 
+void send_packet(name nm, uint8_t add, float val) {
+  packet.header = kHeader;
+  packet.name = nm;
+  packet.additional = add;
+  packet.value = val;
+
+  calculate_checksum(&packet);
+
+  Serial.write((byte*)&packet, sizeof(packet_t));
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -207,68 +149,82 @@ void setup() {
   g_horizontal_motor->init(kHSpeed, kHAccel, kHDirPin);
   g_vertical_motor->init(kVSpeed, kVAccel, kVDirPin);
 
-  packet.header = kHeader;
-  packet.name = name::esp_ok;
-  packet.additional = 0;
-  packet.value = 0.0;
-  calculate_checksum(&packet);
-
-  // Serial.write((byte*)&packet, sizeof(packet_t));
+  send_packet(name::esp_ok, 0, 0);
 }
 
-
 void loop() {
-  checkMovementConstraints();
+  while (Serial.available() >= sizeof(packet_t)) {
+    if (Serial.peek() == kHeader) {
+      Serial.readBytes((byte*)&packet, sizeof(packet_t));
 
-  if (Serial.available() >= sizeof(packet_t)) {
-    Serial.readBytes((byte*)&packet, sizeof(packet_t));
-  }
+      if (check_checksum(packet)) {
+        switch (packet.name) {
+          case name::move: {
+            float move_degrees = packet.value;
 
-  
-  if (packet.name != name::used && check_checksum(packet) && packet.header == kHeader) {
-    switch (packet.name)
-    {
-      case name::move:
-        switch (packet.additional)
-        {
-          case direction::right:
-            g_horizontal_motor->move(packet.value);
+            if (packet.additional == direction::right ||
+                packet.additional == direction::left) {
+              if (packet.additional == direction::left) {
+                move_degrees *= -1.0f;
+              }
+
+              targetOrientation[axis::hor] =
+                  g_horizontal_motor->resolveCurrentAngle() + move_degrees;
+
+              g_horizontal_motor->moveTo(targetOrientation[axis::hor]);
+            } else if (packet.additional == direction::up ||
+                       packet.additional == direction::down) {
+              if (packet.additional == direction::down) {
+                move_degrees *= -1.0f;
+              }
+
+              targetOrientation[axis::vert] =
+                  g_vertical_motor->resolveCurrentAngle() + move_degrees;
+
+              if (targetOrientation[axis::vert] > kMaxDegreesUp) {
+                targetOrientation[axis::vert] = kMaxDegreesUp;
+              }
+
+              if (targetOrientation[axis::vert] < kMaxDegreesDown) {
+                targetOrientation[axis::vert] = kMaxDegreesDown;
+              }
+
+              g_vertical_motor->moveTo(targetOrientation[axis::vert]);
+            }
             break;
-          case direction::left:
-            g_horizontal_motor->move(packet.value * (-1));
+          }
+
+          case name::stop:
+            switch (packet.additional) {
+              case axis::hor:
+                g_horizontal_motor->stopMove();
+                break;
+              case axis::vert:
+                g_vertical_motor->stopMove();
+                break;
+              case axis::both:
+                g_horizontal_motor->stopMove();
+                g_vertical_motor->stopMove();
+                break;
+            }
             break;
-          case direction::up:
-            g_vertical_motor->move(packet.value);
+          case name::reset_pos:
+            g_vertical_motor->setCurrentPosition(0);
+            g_horizontal_motor->setCurrentPosition(0);
             break;
-          case direction::down:
-            g_vertical_motor->move(packet.value * (-1));
+          case name::restart_esp:
+            ESP.restart();
+            break;
+          case name::get_current_pos:
+            send_packet(name::current_pos, axis::hor,
+                        g_horizontal_motor->resolveCurrentAngle());
+            send_packet(name::current_pos, axis::vert,
+                        g_vertical_motor->resolveCurrentAngle());
             break;
         }
-        break;
-      case name::stop:
-        switch (packet.additional)
-        {
-          case stop::hor:
-            g_horizontal_motor->stopMove();
-            break;
-          case stop::vert:
-            g_vertical_motor->stopMove();
-            break;
-          case stop::both:
-            g_horizontal_motor->stopMove();
-            g_vertical_motor->stopMove();
-            break;
-        }
-        break;
-      case name::reset_pos:
-        g_vertical_motor->setCurrentPosition(0);
-        g_horizontal_motor->setCurrentPosition(0);
-        break;
-      case name::restart_esp:
-        ESP.restart();
-        break;
+      }
+    } else {
+      Serial.read();
     }
-
-    packet.name = name::used;
   }
 }
