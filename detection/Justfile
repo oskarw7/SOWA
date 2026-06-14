@@ -1,0 +1,2 @@
+test:
+  python main.py --model yolo11n --source ./data/input/drone1_mov1.mov --device cuda --record --resolution 1920x1080 --headless
