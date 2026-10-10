@@ -38,7 +38,7 @@ SOWA is a complete, portable autonomous tracking system designed to maintain a s
 - **Truly portable** — the entire system was designed to be carried and set up easily, making it ready for remote outdoor deployment.
 - **Modular & testable** — a built-in simulation environment (Gniazdo) generates synthetic RTSP streams so every module can be developed and validated independently, without physical hardware.
  
-The project was selected as a finalist and recieved a honorable mention in the nationwide **IT is ME Student Innovation Competition** organized by AGH University of Kraków (May 2026).
+The project was selected as a finalist and recieved a honorable mention in the nationwide **IT is ME Student Innovation Competition** organized by AGH University of Kraków (May 2026). The project also won the Dean’s Award for Best Group Project at the WETI Department of Gdańsk University of Technology, as well as the S&P Global Award and the Students’ Choice Award.
 
 ![product](https://drive.google.com/uc?export=view&id=160hVvnYBe09-R68OZMG0LiXCIbEty_Yd)
  
